@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { RotateCw } from 'lucide-react';
 import { MTR_LINE_GROUPS, LRT_GROUPS, BUS_GROUPS } from '../constants/transportData';
@@ -11,7 +11,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     const { language, searchQuery, setSearchQuery, selectedStation, setSelectedStation } = useAppStore();
     const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
     const [stationLastUpdated, setStationLastUpdated] = useState<string | null>(null);
-    const [refetchers, setRefetchers] = useState<Array<() => void>>([]);
+    const refetchersRef = useRef<Array<() => void>>([]);
     const [dynamicStops, setDynamicStops] = useState<Record<string, { byDir: Record<string, StationOption[]>, directionInfo: Record<string, any> }>>({});
     const [openDirections, setOpenDirections] = useState<Record<string, Set<string>>>({});
 
@@ -135,10 +135,10 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         }
     }, [expandedGroup]);
 
-    // Memoize the refetch registration callback to prevent infinite loops
+    // Memoize the refetch registration callback - use ref to avoid triggering re-renders
     const registerRefetch = useCallback((fn: () => void) => {
-        setRefetchers(prev => [...prev, fn]);
-        return () => setRefetchers(prev => prev.filter(f => f !== fn));
+        refetchersRef.current = [...refetchersRef.current, fn];
+        return () => { refetchersRef.current = refetchersRef.current.filter(f => f !== fn); };
     }, []);
 
     if (selectedStation) {
@@ -151,7 +151,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                         {stationLastUpdated && <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>{(language === 'TC' ? '更新: ' : 'Last Updated: ')}{stationLastUpdated}</span>}
                         <button
                             className="refresh-btn"
-                            onClick={() => { refetchers.forEach(fn => { try { fn(); } catch (e) {} }); }}
+                            onClick={() => { refetchersRef.current.forEach(fn => { try { fn(); } catch (e) {} }); }}
                             style={{ width: '38px', height: '38px', borderRadius: '12px' }}
                         >
                             <RotateCw size={18} />

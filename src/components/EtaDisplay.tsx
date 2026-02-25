@@ -16,6 +16,11 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
     const [selectedFilterIndex, setSelectedFilterIndex] = useState<number | null>(null);
     const lang = language.toLowerCase() as 'en' | 'tc';
     const refetchRef = useRef<(() => void) | null>(null);
+    const onUpdateTimeRef = useRef(onUpdateTime);
+    const onRegisterRefetchRef = useRef(onRegisterRefetch);
+    // Keep refs in sync without causing extra effects
+    onUpdateTimeRef.current = onUpdateTime;
+    onRegisterRefetchRef.current = onRegisterRefetch;
 
     // Helper function to resolve bilingual names
     const resolveName = (name: any): string => {
@@ -47,29 +52,23 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
         return new Date(dataUpdatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
     }, [dataUpdatedAt]);
 
+    // Keep refetch ref up to date
     useEffect(() => {
-        if (onUpdateTime) onUpdateTime(lastUpdated || null);
-    }, [lastUpdated, onUpdateTime]);
-
-    // Store the latest refetch in ref so it's always available
-    useEffect(() => {
-        refetchRef.current = () => {
-            try { refetch(); } catch (e) { /* ignore */ }
-        };
+        refetchRef.current = () => { try { refetch(); } catch (e) { /* ignore */ } };
     }, [refetch]);
 
-    // Register refetch with parent ONCE on mount - the ref ensures we always call the latest refetch
+    // Notify parent of time updates via ref (stable, no re-registering)
     useEffect(() => {
-        if (!onRegisterRefetch) return;
-        
-        const unregister = onRegisterRefetch(() => {
-            if (refetchRef.current) refetchRef.current();
-        });
-        
-        return () => {
-            try { unregister(); } catch (e) { /* ignore */ }
-        };
-    }, [onRegisterRefetch]);
+        if (onUpdateTimeRef.current) onUpdateTimeRef.current(lastUpdated || null);
+    }, [lastUpdated]);
+
+    // Register refetch with parent ONCE on mount only
+    useEffect(() => {
+        const register = onRegisterRefetchRef.current;
+        if (!register) return;
+        const unregister = register(() => { if (refetchRef.current) refetchRef.current(); });
+        return () => { try { unregister(); } catch (e) { /* ignore */ } };
+    }, []); // empty deps - intentional, uses refs internally
 
     const busDirectionLabel = useMemo(() => {
         if (currentTab !== 'BUS' || !stationId) return undefined;
