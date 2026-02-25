@@ -14,18 +14,24 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     const refetchersRef = useRef<Array<() => void>>([]);
     const [dynamicStops, setDynamicStops] = useState<Record<string, { byDir: Record<string, StationOption[]>, directionInfo: Record<string, any> }>>({});
     const [openDirections, setOpenDirections] = useState<Record<string, Set<string>>>({});
+    const groupHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
+    const directionHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
 
     const toggleDirection = (routeKey: string, dir: string) => {
         setOpenDirections(prev => {
-            const dirs = prev[routeKey] || new Set();
-            const updated = new Set(dirs);
-            if (updated.has(dir)) {
-                updated.delete(dir);
+            const current = prev[routeKey];
+            // True accordion: if direction is already open, close it; otherwise, open it exclusively
+            if (current?.has(dir)) {
+                return { ...prev, [routeKey]: new Set() };
             } else {
-                updated.add(dir);
+                return { ...prev, [routeKey]: new Set([dir]) };
             }
-            return { ...prev, [routeKey]: updated };
         });
+        // Smooth scroll to direction header
+        setTimeout(() => {
+            const elem = directionHeaderRefs.current[dir];
+            if (elem) elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 50);
     };
 
     useEffect(() => {
@@ -191,7 +197,16 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                 <div key={resolveName(group.groupName)} className="glass-card" style={{ padding: 0, overflow: 'hidden', marginBottom: '0.4rem', border: expandedGroup === resolveName(group.groupName) ? '1px solid rgba(167, 139, 250, 0.2)' : '1px solid transparent' }}>
                     <button
                         className="accordion-header"
-                        onClick={() => setExpandedGroup(expandedGroup === resolveName(group.groupName) ? null : resolveName(group.groupName))}
+                        ref={el => { if (el) groupHeaderRefs.current[resolveName(group.groupName)] = el; }}
+                        onClick={() => {
+                            const groupName = resolveName(group.groupName);
+                            setExpandedGroup(expandedGroup === groupName ? null : groupName);
+                            // Smooth scroll to center the group header
+                            setTimeout(() => {
+                                const elem = groupHeaderRefs.current[groupName];
+                                if (elem) elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 50);
+                        }}
                         aria-expanded={expandedGroup === resolveName(group.groupName)}
                         aria-controls={`group-${resolveName(group.groupName)}`}
                         style={{ width: '100%', padding: '0.85rem 1.15rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: expandedGroup === resolveName(group.groupName) ? 'rgba(255,255,255,0.04)' : 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}
@@ -267,6 +282,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                             <button
                                                 type="button"
                                                 className="direction-header"
+                                                ref={el => { if (el) directionHeaderRefs.current[d] = el; }}
                                                 onClick={() => toggleDirection(key, d)}
                                                 style={{ width: '100%', padding: '0.65rem 1.15rem 0.65rem 2.45rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isOpen ? 'rgba(255,255,255,0.02)' : 'transparent', border: 'none', color: 'white', cursor: 'pointer', transition: 'background 0.2s' }}
                                                 aria-expanded={isOpen}
