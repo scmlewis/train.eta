@@ -115,6 +115,11 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
         return allDests.sort();
     }, [data, currentTab, lang]);
 
+    // ⚠️ ALL hooks must be above any early returns (Rules of Hooks)
+    useEffect(() => {
+        setSelectedFilterIndex(null);
+    }, [language]);
+
     const t = {
         loading: lang === 'tc' ? '載入中...' : 'Loading...',
         noData: lang === 'tc' ? '暫無數據' : 'No data',
@@ -136,10 +141,6 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
         <div style={{ fontSize: '0.85rem', color: '#ff6b6b' }}>{(error as Error).message}</div>
         {typeof error?.cause === 'string' && <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: '#ffa8a8' }}>{error.cause}</div>}
     </div>;
-
-    useEffect(() => {
-        setSelectedFilterIndex(null);
-    }, [language]);
 
     const renderContent = () => {
         if (!data) {
