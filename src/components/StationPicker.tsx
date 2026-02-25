@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { RotateCw, Search, AlertCircle } from 'lucide-react';
+import { RotateCw, Search } from 'lucide-react';
 import { MTR_LINE_GROUPS, LRT_GROUPS, BUS_GROUPS } from '../constants/transportData';
 import { BUS_STOP_NAMES } from '../constants/busStopNames';
 import type { StationOption } from '../constants/transportData';
