@@ -205,10 +205,14 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
                 <div className="animate-fade-in">
                     {/* Both sections stay in the DOM so CSS max-height transition plays on collapse */}
                     <div className={`eta-section ${showUp ? 'expanded' : 'collapsed'}`}>
-                        <EtaTable title={upTitle} etas={showUp ? filteredUp : allUp} trackColor={currentColor} />
+                        <div className="eta-section-inner">
+                            <EtaTable title={upTitle} etas={showUp ? filteredUp : allUp} trackColor={currentColor} />
+                        </div>
                     </div>
                     <div className={`eta-section ${showDown ? 'expanded' : 'collapsed'}`}>
-                        <EtaTable title={downTitle} etas={showDown ? filteredDown : allDown} trackColor={currentColor} />
+                        <div className="eta-section-inner">
+                            <EtaTable title={downTitle} etas={showDown ? filteredDown : allDown} trackColor={currentColor} />
+                        </div>
                     </div>
                     {noResults && <NoMatchCard lang={lang} />}
                 </div>

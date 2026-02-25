@@ -249,17 +249,22 @@ body {
 
 /* ETA direction blocks — kept in DOM so CSS can animate collapse/expand */
 .eta-section {
-  overflow: hidden;
-  transition: max-height 0.35s ease, opacity 0.3s ease;
+  display: grid;
+  transition: grid-template-rows 0.4s ease, opacity 0.35s ease;
 }
 .eta-section.expanded {
-  max-height: 800px;
+  grid-template-rows: 1fr;
   opacity: 1;
 }
 .eta-section.collapsed {
-  max-height: 0;
+  grid-template-rows: 0fr;
   opacity: 0;
   pointer-events: none;
+}
+/* The direct child must have overflow:hidden + min-height:0 for the grid trick to work */
+.eta-section > .eta-section-inner {
+  overflow: hidden;
+  min-height: 0;
 }
 
 .refresh-btn {
