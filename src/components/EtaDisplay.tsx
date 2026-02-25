@@ -122,14 +122,21 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
     };
 
     if (isLoading) return <div className="glass-card animate-fade-in" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>{t.loading}</div>;
-    if (isError) return <div className="glass-card animate-fade-in" style={{ color: '#ef4444', textAlign: 'center' }}>Error: {(error as Error).message}</div>;
+    if (isError) return <div className="glass-card animate-fade-in" style={{ color: '#ef4444', textAlign: 'center', padding: '2rem' }}>
+        <div style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Error loading data</div>
+        <div style={{ fontSize: '0.85rem', color: '#ff6b6b' }}>{(error as Error).message}</div>
+        {typeof error?.cause === 'string' && <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: '#ffa8a8' }}>{error.cause}</div>}
+    </div>;
 
     useEffect(() => {
         setSelectedFilterIndex(null);
     }, [language]);
 
     const renderContent = () => {
-        if (!data) return <div style={{ color: 'var(--text-muted)' }}>{t.noData}</div>;
+        if (!data) {
+            console.warn('[EtaDisplay] No data received', { currentTab, stationId, line, data });
+            return <div style={{ color: 'var(--text-muted)' }}>{t.noData}</div>;
+        }
 
         if (currentTab === 'MTR' && isMTRData(data)) {
             const currentColor = line ? getLineColor(line) : 'var(--mtr-color)';

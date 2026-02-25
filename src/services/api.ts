@@ -6,12 +6,19 @@ const fetchWithTimeout = async (resource: string, options: RequestInit = {}) => 
     const { timeout = API_TIMEOUT } = options as any;
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
-    const response = await fetch(resource, {
-        ...options,
-        signal: controller.signal
-    });
-    clearTimeout(id);
-    return response;
+    try {
+        const response = await fetch(resource, {
+            ...options,
+            signal: controller.signal,
+            mode: 'cors',
+            credentials: 'omit'
+        });
+        clearTimeout(id);
+        return response;
+    } catch (err) {
+        clearTimeout(id);
+        throw err;
+    }
 };
 
 // Normalize Functions
@@ -107,18 +114,34 @@ export function normalizeBus(data: any, lang: 'EN' | 'TC' = 'EN'): (ETA & { stop
 // Fetchers
 export const fetchMTR = async (line: string, station: string) => {
     const url = `https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${line}&sta=${station}`;
-    const response = await fetchWithTimeout(url);
-    if (!response.ok) throw new Error('Failed to fetch MTR data');
-    const data = await response.json();
-    return normalizeMTR(data, station, line);
+    try {
+        const response = await fetchWithTimeout(url);
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`MTR API responded with ${response.status}: ${text.slice(0, 100)}`);
+        }
+        const data = await response.json();
+        return normalizeMTR(data, station, line);
+    } catch (err: any) {
+        console.error('MTR fetch error:', err);
+        throw new Error(`Failed to fetch MTR data: ${err.message || 'Unknown error'}`);
+    }
 };
 
 export const fetchLRT = async (stationId: string, lang: 'EN' | 'TC' = 'EN') => {
     const url = `https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?station_id=${stationId}`;
-    const response = await fetchWithTimeout(url);
-    if (!response.ok) throw new Error('Failed to fetch LRT data');
-    const data = await response.json();
-    return normalizeLRT(data, lang);
+    try {
+        const response = await fetchWithTimeout(url);
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`LRT API responded with ${response.status}: ${text.slice(0, 100)}`);
+        }
+        const data = await response.json();
+        return normalizeLRT(data, lang);
+    } catch (err: any) {
+        console.error('LRT fetch error:', err);
+        throw new Error(`Failed to fetch LRT data: ${err.message || 'Unknown error'}`);
+    }
 };
 
 export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
@@ -127,6 +150,7 @@ export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
     // Use the actual public API endpoint directly
     const url = `https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule?${qs.toString()}`;
 
+    console.log('[fetchBus] Calling:', url);
     let lastErrMsg = '';
 
     // Try direct API call first
@@ -137,19 +161,20 @@ export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
             const cleanData = rawData.replace(/^\uFEFF/, '');
             try {
                 const data = JSON.parse(cleanData);
+                console.log('[fetchBus] Success with GET:', data);
                 return normalizeBus(data, lang);
             } catch (parseErr) {
                 lastErrMsg = `GET parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
-                console.warn('Bus GET: JSON parse failed', parseErr);
+                console.warn('[fetchBus] GET parse failed', parseErr);
             }
         } else {
             const txt = await response.text().catch(() => '<no body>');
-            lastErrMsg = `GET status ${response.status}: ${txt.slice(0,200)}`;
-            console.warn('Bus GET failed', response.status, txt.slice(0, 200));
+            lastErrMsg = `GET status ${response.status}: ${txt.slice(0,100)}`;
+            console.warn('[fetchBus] GET failed', response.status, txt.slice(0, 100));
         }
     } catch (err: any) {
         lastErrMsg = `GET request error: ${err && err.message}`;
-        console.warn('Bus GET request error', err);
+        console.warn('[fetchBus] GET request error', err);
     }
 
     // Fallback: POST with JSON
@@ -164,19 +189,20 @@ export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
             const cleanData = rawData.replace(/^\uFEFF/, '');
             try {
                 const data = JSON.parse(cleanData);
+                console.log('[fetchBus] Success with POST:', data);
                 return normalizeBus(data, lang);
             } catch (parseErr) {
                 lastErrMsg = `POST-JSON parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
-                console.warn('Bus POST JSON: JSON parse failed', parseErr);
+                console.warn('[fetchBus] POST parse failed', parseErr);
             }
         } else {
             const txt = await response.text().catch(() => '<no body>');
-            lastErrMsg = `POST-JSON status ${response.status}: ${txt.slice(0,200)}`;
-            console.warn('Bus POST JSON failed', response.status, txt.slice(0, 200));
+            lastErrMsg = `POST status ${response.status}: ${txt.slice(0,100)}`;
+            console.warn('[fetchBus] POST failed', response.status, txt.slice(0, 100));
         }
     } catch (err: any) {
-        lastErrMsg = `POST-JSON request error: ${err && err.message}`;
-        console.warn('Bus POST JSON request error', err);
+        lastErrMsg = `POST request error: ${err && err.message}`;
+        console.warn('[fetchBus] POST request error', err);
     }
 
     throw new Error(`Failed to fetch Bus data (${lastErrMsg || 'unknown error'})`);
