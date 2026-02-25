@@ -142,7 +142,7 @@ export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
                 const data = JSON.parse(cleanData);
                 return normalizeBus(data, lang);
             } catch (parseErr) {
-                lastErrMsg = `POST-JSON parse error: ${parseErr.message}`;
+                lastErrMsg = `POST-JSON parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
                 console.warn('Bus POST JSON: JSON parse failed', parseErr);
             }
         } else {
@@ -165,7 +165,7 @@ export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
                 const data = JSON.parse(cleanData);
                 return normalizeBus(data, lang);
             } catch (parseErr) {
-                lastErrMsg = `GET parse error: ${parseErr.message}`;
+                lastErrMsg = `GET parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
                 console.warn('Bus GET: JSON parse failed, will try form fallback', parseErr);
             }
         } else {
@@ -192,7 +192,7 @@ export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
                 const data = JSON.parse(cleanData);
                 return normalizeBus(data, lang);
             } catch (parseErr) {
-                lastErrMsg = `POST-FORM parse error: ${parseErr.message}`;
+                lastErrMsg = `POST-FORM parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
                 console.warn('Bus POST FORM: JSON parse failed', parseErr);
             }
         } else {

@@ -1,6 +1,5 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi, expect } from 'vitest';
+import { vi, expect, describe, it } from 'vitest';
 import '@testing-library/jest-dom';
 import StationList from '../components/StationPicker';
 
