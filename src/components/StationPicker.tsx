@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { RotateCw } from 'lucide-react';
+import { RotateCw, Search, AlertCircle } from 'lucide-react';
 import { MTR_LINE_GROUPS, LRT_GROUPS, BUS_GROUPS } from '../constants/transportData';
 import { BUS_STOP_NAMES } from '../constants/busStopNames';
 import type { StationOption } from '../constants/transportData';
@@ -17,6 +17,15 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     const groupHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
     const directionHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
 
+    // Create a stable, language-independent key for group names
+    const getGroupKey = (groupName: any): string => {
+        if (typeof groupName === 'string') {
+            return groupName;
+        }
+        // For objects, use a stable string representation
+        return JSON.stringify(groupName);
+    };
+
         const toggleDirection = (routeKey: string, dir: string) => {
             setOpenDirections(prev => {
                 const dirs = prev[routeKey] || new Set();
@@ -31,6 +40,8 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                     return { ...prev, [routeKey]: new Set([dir]) };
                 }
             });
+            // Smooth scroll
+
             setTimeout(() => {
                 const elem = directionHeaderRefs.current[dir];
                 if (!elem) return;
@@ -201,22 +212,98 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     return (
         <div role="listbox" className="accordion-list animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             {filteredGroups.length === 0 && searchQuery && (
-                <div className="glass-card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem 2rem' }}>
-                    {language === 'TC' ? '找不到相關車站或路線' : 'No matching stations or routes'}
+                <div className="glass-card" style={{ 
+                    textAlign: 'center', 
+                    padding: '3rem 2rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '1.5rem',
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(99,102,241,0.05))',
+                    border: '1px solid rgba(99,102,241,0.1)'
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '16px',
+                        background: 'rgba(99,102,241,0.1)',
+                        color: 'rgba(99,102,241,0.6)'
+                    }}>
+                        <Search size={32} strokeWidth={1.5} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-color)', margin: 0 }}>
+                            {language === 'TC' ? '找不到相關車站或路線' : 'No Results Found'}
+                        </h3>
+                        <p style={{ 
+                            fontSize: '0.9rem', 
+                            color: 'var(--text-muted)', 
+                            margin: 0,
+                            lineHeight: '1.5',
+                            maxWidth: '300px'
+                        }}>
+                            {language === 'TC' 
+                                ? '未能找到符合「' + searchQuery + '」的車站或路線。請嘗試：'
+                                : 'No stations or routes match "' + searchQuery + '". Try:'}
+                        </p>
+                        <ul style={{
+                            fontSize: '0.85rem',
+                            color: 'var(--text-muted)',
+                            textAlign: 'left',
+                            margin: '0.5rem 0 0 0',
+                            paddingLeft: '1.2rem',
+                            lineHeight: '1.6'
+                        }}>
+                            <li>{language === 'TC' ? '檢查拼寫' : 'Check spelling'}</li>
+                            <li>{language === 'TC' ? '嘗試不同的關鍵詞' : 'Try different keywords'}</li>
+                            <li>{language === 'TC' ? '搜尋英文或中文名稱' : 'Search in English or Chinese'}</li>
+                        </ul>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setSearchQuery('');
+                            setExpandedGroup(null);
+                        }}
+                        style={{
+                            padding: '0.65rem 1.5rem',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(99,102,241,0.3)',
+                            background: 'rgba(99,102,241,0.15)',
+                            color: 'var(--text-color)',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            fontWeight: 600,
+                            transition: 'all 0.2s',
+                            marginTop: '0.5rem'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(99,102,241,0.25)';
+                            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(99,102,241,0.15)';
+                            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)';
+                        }}
+                    >
+                        {language === 'TC' ? '清除搜尋' : 'Clear Search'}
+                    </button>
                 </div>
             )}
 
             {filteredGroups.map((group: any) => (
-                <div key={resolveName(group.groupName)} className="glass-card" style={{ padding: 0, overflow: 'hidden', marginBottom: '0.4rem', border: expandedGroup === resolveName(group.groupName) ? '1px solid rgba(167, 139, 250, 0.2)' : '1px solid transparent' }}>
+                <div key={resolveName(group.groupName)} className="glass-card" style={{ padding: 0, overflow: 'hidden', marginBottom: '0.4rem', border: expandedGroup === getGroupKey(group.groupName) ? '1px solid rgba(167, 139, 250, 0.2)' : '1px solid transparent' }}>
                     <button
                         className="accordion-header"
-                        ref={el => { if (el) groupHeaderRefs.current[resolveName(group.groupName)] = el; }}
+                        ref={el => { if (el) groupHeaderRefs.current[getGroupKey(group.groupName)] = el; }}
                         onClick={() => {
-                            const groupName = resolveName(group.groupName);
-                            setExpandedGroup(expandedGroup === groupName ? null : groupName);
+                            const groupKey = getGroupKey(group.groupName);
+                            setExpandedGroup(expandedGroup === groupKey ? null : groupKey);
                             // Smooth scroll to position header under .app-header
                             setTimeout(() => {
-                                const elem = groupHeaderRefs.current[groupName];
+                                const elem = groupHeaderRefs.current[getGroupKey(group.groupName)];
                                 if (!elem) return;
                                 const headerEl = document.querySelector('.app-header') as HTMLElement | null;
                                 const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
@@ -224,9 +311,9 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                 window.scrollTo({ top, behavior: 'smooth' });
                             }, 50);
                         }}
-                        aria-expanded={searchQuery.trim() ? true : expandedGroup === resolveName(group.groupName)}
-                        aria-controls={`group-${resolveName(group.groupName)}`}
-                        style={{ width: '100%', padding: '0.85rem 1.15rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: expandedGroup === resolveName(group.groupName) ? 'rgba(255,255,255,0.04)' : 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}
+                        aria-expanded={searchQuery.trim() ? true : expandedGroup === getGroupKey(group.groupName)}
+                        aria-controls={`group-${getGroupKey(group.groupName)}`}
+                        style={{ width: '100%', padding: '0.85rem 1.15rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: expandedGroup === getGroupKey(group.groupName) ? 'rgba(255,255,255,0.04)' : 'transparent', border: 'none', color: 'white', cursor: 'pointer', transition: 'background 0.2s ease' }}
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <div className="line-indicator" style={{ width: '4px', height: '24px', borderRadius: '4px', background: group.color }}></div>
@@ -235,10 +322,10 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                 {group.desc && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{resolveName(group.desc)}</span>}
                             </div>
                         </div>
-                        {expandedGroup === resolveName(group.groupName) ? <ChevronUp size={18} color="var(--text-muted)" /> : <ChevronDown size={18} color="var(--text-muted)" />}
+                        {expandedGroup === getGroupKey(group.groupName) ? <ChevronUp size={18} color="var(--text-muted)" /> : <ChevronDown size={18} color="var(--text-muted)" />}
                     </button>
-                    {(searchQuery.trim() || expandedGroup === resolveName(group.groupName)) && (
-                        <div id={`group-${resolveName(group.groupName)}`} className="accordion-content" style={{ padding: '0.2rem 0', borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.1)' }}>
+                    {(searchQuery.trim() || expandedGroup === getGroupKey(group.groupName)) && (
+                        <div id={`group-${getGroupKey(group.groupName)}`} className="accordion-content" style={{ padding: '0.2rem 0', borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.1)', animation: 'slideDown 0.3s ease-out' }}>
                             {(() => {
                                 const key = typeof group.groupName === 'string' ? group.groupName : (group.groupName.en || group.groupName.tc || resolveName(group.groupName));
                                 const dyn = dynamicStops[key];
