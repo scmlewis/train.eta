@@ -6,10 +6,31 @@ import EtaTable from './EtaTable';
 import type { ETA } from '../types/eta';
 import { getStationName, getLineColor } from '../constants/mtrData';
 import { BUS_STOP_NAMES } from '../constants/busStopNames';
+import { Search } from 'lucide-react';
 
 // Type guards for data structures
 const isMTRData = (data: any): data is { up: ETA[], down: ETA[] } => data && 'up' in data && 'down' in data;
 const isLRTData = (data: any): data is { platform: string, etas: ETA[] }[] => Array.isArray(data) && data.length > 0 && 'platform' in data[0];
+
+// Enhanced "no match" empty state shown when the active destination filter has no ETAs
+function NoMatchCard({ lang }: { lang: 'en' | 'tc' }) {
+    const lines = lang === 'tc'
+        ? { title: '找不到符合的班次', hint: '請嘗試選擇其他目的地篩選，或稍後再查看。' }
+        : { title: 'No matching departures', hint: 'Try selecting a different destination filter, or check back shortly.' };
+    return (
+        <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
+            padding: '1.5rem 1rem', marginTop: '0.5rem',
+            background: 'var(--glass-bg, rgba(255,255,255,0.06))',
+            borderRadius: '0.75rem', border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
+            textAlign: 'center',
+        }}>
+            <Search size={32} style={{ color: 'var(--text-muted)', opacity: 0.7 }} />
+            <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary, inherit)' }}>{lines.title}</p>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)', maxWidth: '22rem' }}>{lines.hint}</p>
+        </div>
+    );
+}
 
 export default function EtaDisplay({ stationId, stationName, line, onUpdateTime, onRegisterRefetch }: { stationId: string, stationName?: string, line?: string, onUpdateTime?: (t: string | null) => void, onRegisterRefetch?: (fn: () => void) => () => void }) {
     const { currentTab, language, selectedStation } = useAppStore();
@@ -105,7 +126,10 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
         let allDests: string[] = [];
 
         if (currentTab === 'MTR' && isMTRData(data)) {
-            allDests = [...new Set([...data.up, ...data.down].map(e => getStationName(e.destination, lang)))];
+            // Sort by raw station code for stable order across language switches
+            const rawCodes = [...new Set([...data.up, ...data.down].map(e => e.destination))].sort();
+            allDests = rawCodes.map(code => getStationName(code, lang));
+            return allDests; // already in stable order, skip final .sort()
         } else if (currentTab === 'LRT' && isLRTData(data)) {
             allDests = [...new Set(data.flatMap(p => p.etas).map(e => e.destination))];
         } else if (currentTab === 'BUS' && Array.isArray(data)) {
@@ -116,9 +140,12 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
     }, [data, currentTab, lang]);
 
     // ⚠️ ALL hooks must be above any early returns (Rules of Hooks)
+    // Reset filter index only if it goes out of bounds after destinations change (e.g. data refetch)
     useEffect(() => {
-        setSelectedFilterIndex(null);
-    }, [language]);
+        if (selectedFilterIndex !== null && selectedFilterIndex >= destinations.length) {
+            setSelectedFilterIndex(null);
+        }
+    }, [destinations, selectedFilterIndex]);
 
     const t = {
         loading: lang === 'tc' ? '載入中...' : 'Loading...',
@@ -168,21 +195,25 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
             return (
                 <div className="animate-fade-in">
                     {filteredUp.length > 0 && (
-                        <EtaTable
-                            title={upTitle || ''}
-                            etas={filteredUp}
-                            trackColor={currentColor}
-                        />
+                        <div style={{ animation: 'slideDown 0.3s ease-out' }}>
+                            <EtaTable
+                                title={upTitle || ''}
+                                etas={filteredUp}
+                                trackColor={currentColor}
+                            />
+                        </div>
                     )}
                     {filteredDown.length > 0 && (
-                        <EtaTable
-                            title={downTitle || ''}
-                            etas={filteredDown}
-                            trackColor={currentColor}
-                        />
+                        <div style={{ animation: 'slideDown 0.3s ease-out' }}>
+                            <EtaTable
+                                title={downTitle || ''}
+                                etas={filteredDown}
+                                trackColor={currentColor}
+                            />
+                        </div>
                     )}
                     {filteredUp.length === 0 && filteredDown.length === 0 && (
-                        <div style={{ color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'center' }}>{t.noMatch}</div>
+                        <NoMatchCard lang={lang} />
                     )}
                 </div>
             );
@@ -198,7 +229,7 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
                 etas: (plat.etas || []).filter((e: any) => !selectedDest || e.destination === selectedDest)
             })).filter(plat => plat.etas.length > 0);
 
-            if (filteredData.length === 0) return <div style={{ color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'center' }}>{t.noMatch}</div>;
+            if (filteredData.length === 0) return <NoMatchCard lang={lang} />;
 
             return (
                 <div className="animate-fade-in">
@@ -229,7 +260,7 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
     };
 
     return (
-        <div style={{ marginTop: '0.15rem' }}>
+        <div style={{ marginTop: '0.15rem' }} className="animate-fade-in">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem', gap: '0.4rem' }}>
                 <div
                     className="filter-container"
