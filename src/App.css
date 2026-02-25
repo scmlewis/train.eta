@@ -19,7 +19,8 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'Noto Serif TC', serif;
+  font-weight: 600;
   background-color: var(--bg-color);
   color: var(--text-color);
   overflow-x: hidden;
