@@ -3,9 +3,9 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  // For GitHub Pages: use '/Train_ETA/' if deploying to a project repo
+  // For GitHub Pages: use '/train.eta/' for this project repo
   // or '/' if deploying to a user/org page
-  base: process.env.VITE_BASE_URL || '/Train_ETA/',
+  base: process.env.VITE_BASE_URL || '/train.eta/',
   server: {
     proxy: {
       '/api/bus': {
