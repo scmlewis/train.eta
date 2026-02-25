@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { RotateCw } from 'lucide-react';
 import { MTR_LINE_GROUPS, LRT_GROUPS, BUS_GROUPS } from '../constants/transportData';
@@ -135,6 +135,12 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         }
     }, [expandedGroup]);
 
+    // Memoize the refetch registration callback to prevent infinite loops
+    const registerRefetch = useCallback((fn: () => void) => {
+        setRefetchers(prev => [...prev, fn]);
+        return () => setRefetchers(prev => prev.filter(f => f !== fn));
+    }, []);
+
     if (selectedStation) {
         const station = selectedStation as any;
         return (
@@ -156,10 +162,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                     station.lines.map((lMap: any) => (
                         <div key={lMap.line} style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '16px', marginBottom: '0.75rem', border: '1px solid rgba(255,255,255,0.05)' }}>
                             <h3 style={{ fontSize: '1rem', color: lMap.lineColor, marginBottom: '0.5rem', fontWeight: 700 }}>{resolveName(lMap.name)}</h3>
-                            <EtaDisplay stationId={station.id} line={lMap.line} stationName={resolveName(station.name)} onUpdateTime={setStationLastUpdated} onRegisterRefetch={(fn) => {
-                                setRefetchers(prev => [...prev, fn]);
-                                return () => setRefetchers(prev => prev.filter(f => f !== fn));
-                            }} />
+                            <EtaDisplay stationId={station.id} line={lMap.line} stationName={resolveName(station.name)} onUpdateTime={setStationLastUpdated} onRegisterRefetch={registerRefetch} />
                         </div>
                     ))
                 ) : (
@@ -169,10 +172,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                         stationName={resolveName(station.name)}
                         line={station.line || station.group}
                         onUpdateTime={setStationLastUpdated}
-                        onRegisterRefetch={(fn) => {
-                            setRefetchers(prev => [...prev, fn]);
-                            return () => setRefetchers(prev => prev.filter(f => f !== fn));
-                        }}
+                        onRegisterRefetch={registerRefetch}
                     />
                 )}
             </div>

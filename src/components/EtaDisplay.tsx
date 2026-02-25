@@ -15,8 +15,7 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
     const { currentTab, language, selectedStation } = useAppStore();
     const [selectedFilterIndex, setSelectedFilterIndex] = useState<number | null>(null);
     const lang = language.toLowerCase() as 'en' | 'tc';
-    const refetchFnRef = useRef<(() => void) | null>(null);
-    const unregisterRef = useRef<(() => void) | null>(null);
+    const refetchRef = useRef<(() => void) | null>(null);
 
     // Helper function to resolve bilingual names
     const resolveName = (name: any): string => {
@@ -52,24 +51,23 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
         if (onUpdateTime) onUpdateTime(lastUpdated || null);
     }, [lastUpdated, onUpdateTime]);
 
-    // Update the ref when refetch changes so parent can always call the latest refetch
+    // Store the latest refetch in ref so it's always available
     useEffect(() => {
-        refetchFnRef.current = () => {
+        refetchRef.current = () => {
             try { refetch(); } catch (e) { /* ignore */ }
         };
     }, [refetch]);
 
-    // Register refetch function to parent once on mount
+    // Register refetch with parent ONCE on mount - the ref ensures we always call the latest refetch
     useEffect(() => {
-        if (!onRegisterRefetch || !refetchFnRef.current) return;
+        if (!onRegisterRefetch) return;
         
-        unregisterRef.current = onRegisterRefetch(refetchFnRef.current);
-
+        const unregister = onRegisterRefetch(() => {
+            if (refetchRef.current) refetchRef.current();
+        });
+        
         return () => {
-            if (unregisterRef.current) {
-                try { unregisterRef.current(); } catch (e) { /* ignore */ }
-                unregisterRef.current = null;
-            }
+            try { unregister(); } catch (e) { /* ignore */ }
         };
     }, [onRegisterRefetch]);
 
