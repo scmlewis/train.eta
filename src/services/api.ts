@@ -32,8 +32,27 @@ function normalizeMTR(data: any, stationCode: string, lineCode: string): { up: E
         if (data.status === 0 || data.isdelay === 'Y') {
             throw new Error(data.message || 'MTR Service Delay or Offline');
         }
-        const stationData = data.data[`${lineCode}-${stationCode}`];
-        if (!stationData) return { up: [], down: [] };
+        let stationData = data.data[`${lineCode}-${stationCode}`];
+        // Fallback: sometimes API keys may use different ordering or station codes; try to find a matching key
+        if (!stationData && data.data && typeof data.data === 'object') {
+            const keys = Object.keys(data.data);
+            const match = keys.find(k => {
+                if (!k) return false;
+                const parts = k.split('-');
+                // match by exact station code part
+                if (parts[1] && parts[1].toUpperCase() === String(stationCode).toUpperCase()) return true;
+                // match by ending with stationCode
+                if (k.toUpperCase().endsWith(`-${String(stationCode).toUpperCase()}`)) return true;
+                return false;
+            });
+            if (match) {
+                stationData = data.data[match];
+            }
+        }
+        if (!stationData) {
+            console.warn('MTR: station data missing for', `${lineCode}-${stationCode}`, 'available keys:', data && data.data ? Object.keys(data.data).slice(0,20) : []);
+            return { up: [], down: [] };
+        }
 
         const mapEtas = (list: any[] = []) => list.filter(item => item.valid === 'Y').map((item, idx) => ({
             id: `mtr-${item.seq}-${idx}`,
