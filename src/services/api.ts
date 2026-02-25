@@ -25,6 +25,10 @@ const fetchWithTimeout = async (resource: string, options: RequestInit = {}) => 
 
 function normalizeMTR(data: any, stationCode: string, lineCode: string): { up: ETA[], down: ETA[] } {
     try {
+        // If API explicitly indicates empty contents for this station, treat as no arrivals rather than a hard error.
+        if (data && data.message && String(data.message).toLowerCase().includes('empty')) {
+            return { up: [], down: [] };
+        }
         if (data.status === 0 || data.isdelay === 'Y') {
             throw new Error(data.message || 'MTR Service Delay or Offline');
         }
