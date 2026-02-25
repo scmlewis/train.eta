@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { RotateCw, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, RotateCw, Search } from 'lucide-react';
 import { MTR_LINE_GROUPS, LRT_GROUPS, BUS_GROUPS } from '../constants/transportData';
 import { BUS_STOP_NAMES } from '../constants/busStopNames';
 import type { StationOption } from '../constants/transportData';
@@ -17,40 +16,34 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     const groupHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
     const directionHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
 
-    // Create a stable, language-independent key for group names
+    // FEATURE 1: Language-independent key for group state
+    // Ensures expanded groups persist when switching languages
     const getGroupKey = (groupName: any): string => {
-        if (typeof groupName === 'string') {
-            return groupName;
-        }
-        // For objects, use a stable string representation
+        if (typeof groupName === 'string') return groupName;
         return JSON.stringify(groupName);
     };
 
-        const toggleDirection = (routeKey: string, dir: string) => {
-            setOpenDirections(prev => {
-                const dirs = prev[routeKey] || new Set();
-                const updated = new Set(dirs);
-                if (searchQuery.trim()) {
-                    // search mode: allow multiple directions open/close
-                    if (updated.has(dir)) updated.delete(dir); else updated.add(dir);
-                    return { ...prev, [routeKey]: updated };
-                } else {
-                    // normal mode: true accordion
-                    if (updated.has(dir)) return { ...prev, [routeKey]: new Set() };
-                    return { ...prev, [routeKey]: new Set([dir]) };
-                }
-            });
-            // Smooth scroll
-
-            setTimeout(() => {
-                const elem = directionHeaderRefs.current[dir];
-                if (!elem) return;
-                const headerEl = document.querySelector('.app-header') as HTMLElement | null;
-                const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
-                const top = elem.getBoundingClientRect().top + window.scrollY - headerH - 8;
-                window.scrollTo({ top, behavior: 'smooth' });
-            }, 50);
-        };
+    const toggleDirection = (routeKey: string, dir: string) => {
+        setOpenDirections(prev => {
+            const dirs = prev[routeKey] || new Set();
+            const updated = new Set(dirs);
+            if (searchQuery.trim()) {
+                if (updated.has(dir)) updated.delete(dir); else updated.add(dir);
+                return { ...prev, [routeKey]: updated };
+            } else {
+                if (updated.has(dir)) return { ...prev, [routeKey]: new Set() };
+                return { ...prev, [routeKey]: new Set([dir]) };
+            }
+        });
+        setTimeout(() => {
+            const elem = directionHeaderRefs.current[dir];
+            if (!elem) return;
+            const headerEl = document.querySelector('.app-header') as HTMLElement | null;
+            const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
+            const top = elem.getBoundingClientRect().top + window.scrollY - headerH - 8;
+            window.scrollTo({ top, behavior: 'smooth' });
+        }, 50);
+    };
 
     useEffect(() => {
         setSelectedStation(null);
@@ -93,26 +86,20 @@ export default function StationList({ currentTab }: { currentTab: string }) {
 
     const filteredGroups = getFilteredGroups();
 
-        // When search is active we show all matches expanded; only collapse when search cleared
-        useEffect(() => {
-            if (!searchQuery.trim()) {
-                setExpandedGroup(null);
-            }
-        }, [searchQuery, filteredGroups.length]);
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            setExpandedGroup(null);
+        }
+    }, [searchQuery, filteredGroups.length]);
 
-    // When expanding a bus route group, auto-populate full stops from API
     useEffect(() => {
         if (!expandedGroup) return;
         if (currentTab !== 'BUS') return;
-        const grp = groups.find((g: any) => resolveName(g.groupName) === expandedGroup);
+        const grp = groups.find((g: any) => getGroupKey(g.groupName) === expandedGroup);
         if (!grp) return;
         const routeKey = typeof grp.groupName === 'string' ? grp.groupName : (grp.groupName.en || grp.groupName.tc || resolveName(grp.groupName));
-        if (dynamicStops[routeKey]) return; // already loaded
+        if (dynamicStops[routeKey]) return;
 
-        // Build stop list entirely from BUS_STOP_NAMES (static CSV data).
-        // This is instantaneous and works for ALL routes including those with no active buses,
-        // which caused K74/K58 and others to show nothing when the live API returned empty busStop.
-        // Bilingual {en,tc} objects are stored so language switching works at render time.
         const prefix = routeKey + '-';
         const allByDir: Record<string, StationOption[]> = {};
         const dirInfo: Record<string, any> = {};
@@ -126,12 +113,10 @@ export default function StationList({ currentTab }: { currentTab: string }) {
             allByDir[dir].push({ id, name: names } as StationOption);
         }
 
-        // Sort each direction by stop ID (IDs are zero-padded so localeCompare is correct)
         Object.values(allByDir).forEach(stops =>
             stops.sort((a, b) => String(a.id).localeCompare(String(b.id)))
         );
 
-        // Endpoint label for each direction = name of the last stop
         for (const [dir, stops] of Object.entries(allByDir)) {
             const lastStop = stops[stops.length - 1];
             const name = lastStop?.name as any;
@@ -145,27 +130,23 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         setDynamicStops(prev => ({ ...prev, [routeKey]: { byDir: allByDir, directionInfo: dirInfo } }));
     }, [expandedGroup, currentTab, groups, dynamicStops]);
 
-        // reset last-updated when selection changes
-        useEffect(() => {
-            setStationLastUpdated(null);
-        }, [selectedStation]);
+    useEffect(() => {
+        setStationLastUpdated(null);
+    }, [selectedStation]);
 
-        // Scroll to top when a station is selected (page navigation)
-        useEffect(() => {
-            if (!selectedStation) return;
-            setTimeout(() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }, 50);
-        }, [selectedStation]);
+    useEffect(() => {
+        if (!selectedStation) return;
+        setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 50);
+    }, [selectedStation]);
 
-    // clear open directions when route group collapses
     useEffect(() => {
         if (!expandedGroup) {
             setOpenDirections({});
         }
     }, [expandedGroup]);
 
-    // Memoize the refetch registration callback - use ref to avoid triggering re-renders
     const registerRefetch = useCallback((fn: () => void) => {
         refetchersRef.current = [...refetchersRef.current, fn];
         return () => { refetchersRef.current = refetchersRef.current.filter(f => f !== fn); };
@@ -211,6 +192,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
 
     return (
         <div role="listbox" className="accordion-list animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            {/* FEATURE 3: Enhanced empty state with icon and helpful suggestions */}
             {filteredGroups.length === 0 && searchQuery && (
                 <div className="glass-card" style={{ 
                     textAlign: 'center', 
@@ -301,7 +283,6 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                         onClick={() => {
                             const groupKey = getGroupKey(group.groupName);
                             setExpandedGroup(expandedGroup === groupKey ? null : groupKey);
-                            // Smooth scroll to position header under .app-header
                             setTimeout(() => {
                                 const elem = groupHeaderRefs.current[getGroupKey(group.groupName)];
                                 if (!elem) return;
@@ -324,13 +305,13 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                         </div>
                         {expandedGroup === getGroupKey(group.groupName) ? <ChevronUp size={18} color="var(--text-muted)" /> : <ChevronDown size={18} color="var(--text-muted)" />}
                     </button>
+                    {/* FEATURE 2: Collapse animation with slideDown */}
                     {(searchQuery.trim() || expandedGroup === getGroupKey(group.groupName)) && (
                         <div id={`group-${getGroupKey(group.groupName)}`} className="accordion-content" style={{ padding: '0.2rem 0', borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.1)', animation: 'slideDown 0.3s ease-out' }}>
                             {(() => {
                                 const key = typeof group.groupName === 'string' ? group.groupName : (group.groupName.en || group.groupName.tc || resolveName(group.groupName));
                                 const dyn = dynamicStops[key];
                                 
-                                // For BUS routes: never show static endpoints; wait for dynamic direction blocks
                                 if (currentTab === 'BUS') {
                                     if (!dyn) {
                                         return (
@@ -347,7 +328,6 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                         );
                                     }
                                 } else {
-                                    // For MTR/LRT: show static stations if no dynamic data
                                     if (!dyn) return group.stations.map((station: any) => {
                                         const nameStr = typeof station.name === 'string' ? station.name : (language === 'TC' ? station.name.tc : station.name.en);
                                         return (
@@ -367,14 +347,11 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                     });
                                 }
 
-                                // render direction blocks as separate collapsible sub-items (BUS and MTR/LRT with dynamic data)
                                 return Object.keys(dyn.byDir).map((d) => {
                                     const dirInfo = dyn.directionInfo?.[d];
-                                    // Use bilingual endpoint names from API, fallback to direction code
                                     const endpointLabel = language === 'TC' ? (dirInfo?.endpointTc || `Direction ${d}`) : (dirInfo?.endpointEn || `Direction ${d}`);
                                     const isOpen = searchQuery.trim() ? true : (openDirections[key]?.has(d) || false);
 
-                                    // Detect circular direction: if first & last stop share the same name, bus loops back
                                     const dirStops = dyn.byDir[d];
                                     const firstName = (() => { const n = dirStops[0]?.name as any; return typeof n === 'string' ? n : n?.en; })();
                                     const lastName  = (() => { const n = dirStops[dirStops.length - 1]?.name as any; return typeof n === 'string' ? n : n?.en; })();
