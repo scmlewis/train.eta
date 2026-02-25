@@ -124,13 +124,37 @@ export const fetchLRT = async (stationId: string, lang: 'EN' | 'TC' = 'EN') => {
 export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
     const params = { language: lang === 'TC' ? 'zh' : 'en', routeName: route };
     const qs = new URLSearchParams(params);
-    const url = `/api/bus?${qs.toString()}`;
+    // Use the actual public API endpoint directly
+    const url = `https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule?${qs.toString()}`;
 
     let lastErrMsg = '';
 
-    // Prefer POST JSON (this matches the public API behavior and avoids 404 from GET)
+    // Try direct API call first
     try {
-        let response = await fetchWithTimeout('/api/bus', {
+        let response = await fetchWithTimeout(url);
+        if (response.ok) {
+            const rawData = await response.text();
+            const cleanData = rawData.replace(/^\uFEFF/, '');
+            try {
+                const data = JSON.parse(cleanData);
+                return normalizeBus(data, lang);
+            } catch (parseErr) {
+                lastErrMsg = `GET parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
+                console.warn('Bus GET: JSON parse failed', parseErr);
+            }
+        } else {
+            const txt = await response.text().catch(() => '<no body>');
+            lastErrMsg = `GET status ${response.status}: ${txt.slice(0,200)}`;
+            console.warn('Bus GET failed', response.status, txt.slice(0, 200));
+        }
+    } catch (err: any) {
+        lastErrMsg = `GET request error: ${err && err.message}`;
+        console.warn('Bus GET request error', err);
+    }
+
+    // Fallback: POST with JSON
+    try {
+        let response = await fetchWithTimeout(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(params)
@@ -153,56 +177,6 @@ export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
     } catch (err: any) {
         lastErrMsg = `POST-JSON request error: ${err && err.message}`;
         console.warn('Bus POST JSON request error', err);
-    }
-
-    // Fallback: GET with query params
-    try {
-        let response = await fetchWithTimeout(url);
-        if (response.ok) {
-            const rawData = await response.text();
-            const cleanData = rawData.replace(/^\uFEFF/, '');
-            try {
-                const data = JSON.parse(cleanData);
-                return normalizeBus(data, lang);
-            } catch (parseErr) {
-                lastErrMsg = `GET parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
-                console.warn('Bus GET: JSON parse failed, will try form fallback', parseErr);
-            }
-        } else {
-            const txt = await response.text().catch(() => '<no body>');
-            lastErrMsg = `GET status ${response.status}: ${txt.slice(0,200)}`;
-            console.warn('Bus GET failed', response.status, txt.slice(0, 200));
-        }
-    } catch (err: any) {
-        lastErrMsg = `GET request error: ${err && err.message}`;
-        console.warn('Bus GET request error', err);
-    }
-
-    // Fallback 2: POST form-encoded (some proxies expect this)
-    try {
-        let response = await fetchWithTimeout('/api/bus', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(params).toString()
-        });
-        if (response.ok) {
-            const rawData = await response.text();
-            const cleanData = rawData.replace(/^\uFEFF/, '');
-            try {
-                const data = JSON.parse(cleanData);
-                return normalizeBus(data, lang);
-            } catch (parseErr) {
-                lastErrMsg = `POST-FORM parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
-                console.warn('Bus POST FORM: JSON parse failed', parseErr);
-            }
-        } else {
-            const txt = await response.text().catch(() => '<no body>');
-            lastErrMsg = `POST-FORM status ${response.status}: ${txt.slice(0,200)}`;
-            console.warn('Bus POST FORM failed', response.status, txt.slice(0, 200));
-        }
-    } catch (err: any) {
-        lastErrMsg = `POST-FORM request error: ${err && err.message}`;
-        console.warn('Bus POST FORM request error', err);
     }
 
     throw new Error(`Failed to fetch Bus data (${lastErrMsg || 'unknown error'})`);
