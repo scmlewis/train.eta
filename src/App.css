@@ -1,0 +1,271 @@
+:root {
+  --primary-color: #6366f1;
+  --bg-color: #0b0f1a;
+  --surface-blur: rgba(17, 24, 39, 0.7);
+  --surface-card: rgba(30, 41, 59, 0.4);
+  --text-color: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --mtr-color: #0072ce;
+  --lrt-color: #ffcc00;
+  --bus-color: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  overflow-x: hidden;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Header Refinement */
+.app-header {
+  position: sticky;
+  top: 0;
+  background: rgba(11, 15, 26, 0.81);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 500;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
+}
+
+.logo-text {
+  font-size: 1.35rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.03em;
+}
+
+/* Bottom Nav - Floating Capsule */
+.bottom-nav {
+  display: flex;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 0.5rem;
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2.5rem);
+  max-width: 440px;
+  z-index: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  justify-content: space-around;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.65rem 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 14px;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* Ensure nav icon and label stack correctly and keep consistent sizing */
+.nav-icon {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+.nav-label {
+  font-size: 0.75rem;
+  line-height: 1;
+  display: block;
+}
+
+.nav-btn.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-btn:active {
+  transform: scale(0.9);
+}
+
+.content {
+  padding: 0.75rem;
+  padding-bottom: 7rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Card & Highlights */
+.glass-card {
+  background: var(--surface-card);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 20px 0 rgba(99, 102, 241, 0.2);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.2);
+  }
+}
+
+.eta-row-highlight {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border: 1px solid rgba(99, 102, 241, 0.2) !important;
+  animation: pulse-glow 3s infinite ease-in-out;
+}
+
+/* Buttons */
+.near-me-btn {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 0 0.75rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.near-me-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+}
+
+/* Animations */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.spin {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-pill {
+  padding: 0.55rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-container {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+  padding-bottom: 0.25rem;
+}
+
+.filter-container .filter-pill {
+  flex: 0 0 auto;
+}
+
+.filter-pill.active {
+  background: #fff;
+  color: #0b0f1a;
+  border-color: #fff;
+}
+
+.refresh-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Accessibility & Motion */
+:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Ensure interactive elements have cursor pointer */
+button,
+.nav-btn,
+.near-me-btn,
+.filter-pill,
+.refresh-btn {
+  cursor: pointer;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+
+  .animate-fade-in,
+  .spin {
+    animation: none !important;
+  }
+}
+
+/* Light mode glass card adjustment */
+@media (prefers-color-scheme: light) {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.12);
+  }
+}

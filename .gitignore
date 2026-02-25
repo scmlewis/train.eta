@@ -1,0 +1,61 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# AI Agent & Copilot related files
+.agent/
+.copilot/
+.shared/
+skills/
+
+# Testing and Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Obsolete and temporary files
+*.bak
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Generated/intermediate files
+bus.json
+bus_utf8.json
+lrt.json
+lrt_1.json
+lrt_3.json
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS specific
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
