@@ -17,22 +17,29 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     const groupHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
     const directionHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
 
-    const toggleDirection = (routeKey: string, dir: string) => {
-        setOpenDirections(prev => {
-            const current = prev[routeKey];
-            // True accordion: if direction is already open, close it; otherwise, open it exclusively
-            if (current?.has(dir)) {
-                return { ...prev, [routeKey]: new Set() };
-            } else {
-                return { ...prev, [routeKey]: new Set([dir]) };
-            }
-        });
-        // Smooth scroll to direction header
-        setTimeout(() => {
-            const elem = directionHeaderRefs.current[dir];
-            if (elem) elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 50);
-    };
+        const toggleDirection = (routeKey: string, dir: string) => {
+            setOpenDirections(prev => {
+                const dirs = prev[routeKey] || new Set();
+                const updated = new Set(dirs);
+                if (searchQuery.trim()) {
+                    // search mode: allow multiple directions open/close
+                    if (updated.has(dir)) updated.delete(dir); else updated.add(dir);
+                    return { ...prev, [routeKey]: updated };
+                } else {
+                    // normal mode: true accordion
+                    if (updated.has(dir)) return { ...prev, [routeKey]: new Set() };
+                    return { ...prev, [routeKey]: new Set([dir]) };
+                }
+            });
+            setTimeout(() => {
+                const elem = directionHeaderRefs.current[dir];
+                if (!elem) return;
+                const headerEl = document.querySelector('.app-header') as HTMLElement | null;
+                const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
+                const top = elem.getBoundingClientRect().top + window.scrollY - headerH - 8;
+                window.scrollTo({ top, behavior: 'smooth' });
+            }, 50);
+        };
 
     useEffect(() => {
         setSelectedStation(null);
@@ -75,14 +82,12 @@ export default function StationList({ currentTab }: { currentTab: string }) {
 
     const filteredGroups = getFilteredGroups();
 
-    // Auto-expand if only one group or if searching
-    useEffect(() => {
-        if (searchQuery.trim() && filteredGroups.length > 0) {
-            setExpandedGroup(resolveName(filteredGroups[0].groupName));
-        } else if (!searchQuery.trim()) {
-            setExpandedGroup(null);
-        }
-    }, [searchQuery, filteredGroups.length]);
+        // When search is active we show all matches expanded; only collapse when search cleared
+        useEffect(() => {
+            if (!searchQuery.trim()) {
+                setExpandedGroup(null);
+            }
+        }, [searchQuery, filteredGroups.length]);
 
     // When expanding a bus route group, auto-populate full stops from API
     useEffect(() => {
@@ -129,10 +134,18 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         setDynamicStops(prev => ({ ...prev, [routeKey]: { byDir: allByDir, directionInfo: dirInfo } }));
     }, [expandedGroup, currentTab, groups, dynamicStops]);
 
-    // reset last-updated when selection changes
-    useEffect(() => {
-        setStationLastUpdated(null);
-    }, [selectedStation]);
+        // reset last-updated when selection changes
+        useEffect(() => {
+            setStationLastUpdated(null);
+        }, [selectedStation]);
+
+        // Scroll to top when a station is selected (page navigation)
+        useEffect(() => {
+            if (!selectedStation) return;
+            setTimeout(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 50);
+        }, [selectedStation]);
 
     // clear open directions when route group collapses
     useEffect(() => {
@@ -201,13 +214,17 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                         onClick={() => {
                             const groupName = resolveName(group.groupName);
                             setExpandedGroup(expandedGroup === groupName ? null : groupName);
-                            // Smooth scroll to center the group header
+                            // Smooth scroll to position header under .app-header
                             setTimeout(() => {
                                 const elem = groupHeaderRefs.current[groupName];
-                                if (elem) elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                if (!elem) return;
+                                const headerEl = document.querySelector('.app-header') as HTMLElement | null;
+                                const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
+                                const top = elem.getBoundingClientRect().top + window.scrollY - headerH - 8;
+                                window.scrollTo({ top, behavior: 'smooth' });
                             }, 50);
                         }}
-                        aria-expanded={expandedGroup === resolveName(group.groupName)}
+                        aria-expanded={searchQuery.trim() ? true : expandedGroup === resolveName(group.groupName)}
                         aria-controls={`group-${resolveName(group.groupName)}`}
                         style={{ width: '100%', padding: '0.85rem 1.15rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: expandedGroup === resolveName(group.groupName) ? 'rgba(255,255,255,0.04)' : 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}
                     >
@@ -220,7 +237,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                         </div>
                         {expandedGroup === resolveName(group.groupName) ? <ChevronUp size={18} color="var(--text-muted)" /> : <ChevronDown size={18} color="var(--text-muted)" />}
                     </button>
-                    {expandedGroup === resolveName(group.groupName) && (
+                    {(searchQuery.trim() || expandedGroup === resolveName(group.groupName)) && (
                         <div id={`group-${resolveName(group.groupName)}`} className="accordion-content" style={{ padding: '0.2rem 0', borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.1)' }}>
                             {(() => {
                                 const key = typeof group.groupName === 'string' ? group.groupName : (group.groupName.en || group.groupName.tc || resolveName(group.groupName));
@@ -268,7 +285,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                     const dirInfo = dyn.directionInfo?.[d];
                                     // Use bilingual endpoint names from API, fallback to direction code
                                     const endpointLabel = language === 'TC' ? (dirInfo?.endpointTc || `Direction ${d}`) : (dirInfo?.endpointEn || `Direction ${d}`);
-                                    const isOpen = openDirections[key]?.has(d) || false;
+                                    const isOpen = searchQuery.trim() ? true : (openDirections[key]?.has(d) || false);
 
                                     // Detect circular direction: if first & last stop share the same name, bus loops back
                                     const dirStops = dyn.byDir[d];
