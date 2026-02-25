@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMTR, fetchLRT, fetchBus } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
@@ -15,6 +15,8 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
     const { currentTab, language, selectedStation } = useAppStore();
     const [selectedFilterIndex, setSelectedFilterIndex] = useState<number | null>(null);
     const lang = language.toLowerCase() as 'en' | 'tc';
+    const refetchFnRef = useRef<(() => void) | null>(null);
+    const unregisterRef = useRef<(() => void) | null>(null);
 
     // Helper function to resolve bilingual names
     const resolveName = (name: any): string => {
@@ -50,16 +52,26 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
         if (onUpdateTime) onUpdateTime(lastUpdated || null);
     }, [lastUpdated, onUpdateTime]);
 
-    // register refetch to parent if provided (so parent can trigger refresh for all child fetches)
+    // Update the ref when refetch changes so parent can always call the latest refetch
     useEffect(() => {
-        if (!onRegisterRefetch) return;
-        const unregister = onRegisterRefetch(() => {
+        refetchFnRef.current = () => {
             try { refetch(); } catch (e) { /* ignore */ }
-        });
-        return () => {
-            try { unregister(); } catch (e) { /* ignore */ }
         };
-    }, [onRegisterRefetch, refetch]);
+    }, [refetch]);
+
+    // Register refetch function to parent once on mount
+    useEffect(() => {
+        if (!onRegisterRefetch || !refetchFnRef.current) return;
+        
+        unregisterRef.current = onRegisterRefetch(refetchFnRef.current);
+
+        return () => {
+            if (unregisterRef.current) {
+                try { unregisterRef.current(); } catch (e) { /* ignore */ }
+                unregisterRef.current = null;
+            }
+        };
+    }, [onRegisterRefetch]);
 
     const busDirectionLabel = useMemo(() => {
         if (currentTab !== 'BUS' || !stationId) return undefined;
