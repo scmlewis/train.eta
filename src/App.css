@@ -247,6 +247,21 @@ body {
   overflow: hidden;
 }
 
+/* ETA direction blocks — kept in DOM so CSS can animate collapse/expand */
+.eta-section {
+  overflow: hidden;
+  transition: max-height 0.35s ease, opacity 0.3s ease;
+}
+.eta-section.expanded {
+  max-height: 800px;
+  opacity: 1;
+}
+.eta-section.collapsed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .refresh-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);

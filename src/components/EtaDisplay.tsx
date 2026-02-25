@@ -50,7 +50,13 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
         return lang === 'tc' ? (name.tc || name.en || '') : (name.en || name.tc || '');
     };
 
-    const queryKey = ['eta', currentTab, stationId, line, language].filter(Boolean) as string[];
+    // MTR translation is done client-side, so language does not affect the raw API response.
+    // Exclude it from the key to avoid re-fetching (and losing filter state) on every language toggle.
+    const queryKey = useMemo(() =>
+        currentTab === 'MTR'
+            ? ['eta', 'MTR', stationId, line].filter(Boolean) as string[]
+            : ['eta', currentTab, stationId, line, language].filter(Boolean) as string[],
+    [currentTab, stationId, line, language]);
 
     const { data, isLoading, isError, error, refetch, dataUpdatedAt } = useQuery<any, Error>({
         queryKey,
@@ -140,12 +146,6 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
     }, [data, currentTab, lang]);
 
     // ⚠️ ALL hooks must be above any early returns (Rules of Hooks)
-    // Reset filter index only if it goes out of bounds after destinations change (e.g. data refetch)
-    useEffect(() => {
-        if (selectedFilterIndex !== null && selectedFilterIndex >= destinations.length) {
-            setSelectedFilterIndex(null);
-        }
-    }, [destinations, selectedFilterIndex]);
 
     const t = {
         loading: lang === 'tc' ? '載入中...' : 'Loading...',
@@ -179,42 +179,38 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
             const currentColor = line ? getLineColor(line) : 'var(--mtr-color)';
             const selectedDest = selectedFilterIndex !== null ? destinations[selectedFilterIndex] : null;
 
-            const mapAndFilter = (etas: ETA[]) => etas
-                .map(eta => ({ ...eta, destination: getStationName(eta.destination, lang) }))
-                .filter(eta => !selectedDest || eta.destination === selectedDest);
+            // Translate all ETAs — don't filter yet, so we can keep both blocks in the DOM
+            const translateAll = (etas: ETA[]) =>
+                etas.map(eta => ({ ...eta, destination: getStationName(eta.destination, lang) }));
 
-            const filteredUp = mapAndFilter(data.up);
-            const filteredDown = mapAndFilter(data.down);
+            const allUp = translateAll(data.up);
+            const allDown = translateAll(data.down);
 
-            const upDestinations = [...new Set(filteredUp.map(e => e.destination))];
-            const downDestinations = [...new Set(filteredDown.map(e => e.destination))];
+            const filteredUp = selectedDest ? allUp.filter(e => e.destination === selectedDest) : allUp;
+            const filteredDown = selectedDest ? allDown.filter(e => e.destination === selectedDest) : allDown;
 
-            const upTitle = upDestinations.length > 0 ? `${t.towards}${upDestinations.join(' / ')}` : null;
-            const downTitle = downDestinations.length > 0 ? `${t.towards}${downDestinations.join(' / ')}` : null;
+            // A section is "shown" when it has data AND passes the filter
+            const showUp = allUp.length > 0 && (!selectedDest || filteredUp.length > 0);
+            const showDown = allDown.length > 0 && (!selectedDest || filteredDown.length > 0);
+
+            // Titles derived from the full directional set (not the filtered subset)
+            const upDests = [...new Set(allUp.map(e => e.destination))];
+            const downDests = [...new Set(allDown.map(e => e.destination))];
+            const upTitle = upDests.length > 0 ? `${t.towards}${upDests.join(' / ')}` : '';
+            const downTitle = downDests.length > 0 ? `${t.towards}${downDests.join(' / ')}` : '';
+
+            const noResults = !showUp && !showDown && selectedDest !== null;
 
             return (
                 <div className="animate-fade-in">
-                    {filteredUp.length > 0 && (
-                        <div style={{ animation: 'slideDown 0.3s ease-out' }}>
-                            <EtaTable
-                                title={upTitle || ''}
-                                etas={filteredUp}
-                                trackColor={currentColor}
-                            />
-                        </div>
-                    )}
-                    {filteredDown.length > 0 && (
-                        <div style={{ animation: 'slideDown 0.3s ease-out' }}>
-                            <EtaTable
-                                title={downTitle || ''}
-                                etas={filteredDown}
-                                trackColor={currentColor}
-                            />
-                        </div>
-                    )}
-                    {filteredUp.length === 0 && filteredDown.length === 0 && (
-                        <NoMatchCard lang={lang} />
-                    )}
+                    {/* Both sections stay in the DOM so CSS max-height transition plays on collapse */}
+                    <div className={`eta-section ${showUp ? 'expanded' : 'collapsed'}`}>
+                        <EtaTable title={upTitle} etas={showUp ? filteredUp : allUp} trackColor={currentColor} />
+                    </div>
+                    <div className={`eta-section ${showDown ? 'expanded' : 'collapsed'}`}>
+                        <EtaTable title={downTitle} etas={showDown ? filteredDown : allDown} trackColor={currentColor} />
+                    </div>
+                    {noResults && <NoMatchCard lang={lang} />}
                 </div>
             );
         }
