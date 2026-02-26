@@ -102,17 +102,87 @@ export function normalizeLRT(data: any, lang: 'EN' | 'TC' = 'EN'): { platform: s
         if (!data.platform_list || data.platform_list.length === 0) return [];
 
         const isTC = lang === 'TC';
+        const systemTime = data.system_time as string | undefined;
 
         return data.platform_list.map((plat: any) => {
-            const etas = (plat.route_list || []).map((route: any, idx: number) => ({
-                id: `lrt-${plat.platform_id}-${idx}`,
-                destination: isTC ? route.dest_ch : route.dest_en,
-                time: isTC ? route.time_ch : route.time_en,
-                platform: String(plat.platform_id),
-                tti: isTC ? route.time_ch : route.time_en,
-                routeNo: route.route_no,
-                trainLength: route.train_length
-            }));
+            const etas = (plat.route_list || []).map((route: any, idx: number) => {
+                const rawTime = isTC ? route.time_ch : route.time_en;
+                // Parse time/status information from provider. We will:
+                // - keep `tti` as the raw string for debugging
+                // - set `ttiMinutes` when numeric minutes are present (may be 0)
+                // - derive `status` for 'DEPARTING'/'DEPARTED' where applicable
+                // - compute an absolute HH:MM `time` only when ttiMinutes > 0 or when a HH:MM timestamp exists
+                const raw = String(rawTime || '').trim();
+                let ttiMinutes: number | undefined = undefined;
+                let status: ETA['status'] = 'UNKNOWN';
+                let absTime: string | undefined = undefined;
+
+                // Numeric minutes (EN/TC)
+                const relMatch = raw.match(/(\d+)\s*(min|mins|分鐘)/i);
+                if (relMatch) {
+                    const mins = parseInt(relMatch[1], 10);
+                    if (!Number.isNaN(mins)) {
+                        ttiMinutes = mins;
+                        status = mins === 0 ? 'DEPARTING' : 'IN_SERVICE';
+                        if (mins > 0) {
+                            // Use API system_time as the clock base so the computed HH:MM
+                            // stays consistent with Hong Kong time regardless of device timezone.
+                            const base = systemTime
+                                ? new Date(String(systemTime).replace(' ', 'T'))
+                                : new Date();
+                            const arrival = new Date((Number.isNaN(base.getTime()) ? new Date() : base).getTime() + mins * 60_000);
+                            absTime = arrival.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                        } else {
+                            // Departing (0 min): use API system_time as the clock reference (option B)
+                            const base = systemTime
+                                ? new Date(String(systemTime).replace(' ', 'T'))
+                                : new Date();
+                            if (!Number.isNaN(base.getTime())) {
+                                absTime = base.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                            }
+                        }
+                    }
+                } else {
+                    // look for explicit HH:MM
+                    const dtMatch = raw.match(/(\d{2}:\d{2})/);
+                    if (dtMatch) {
+                        absTime = dtMatch[1];
+                        status = 'IN_SERVICE';
+                    }
+                    // detect textual departing/departed cases (English & some Chinese tokens)
+                    // Also treat bare "-" or "--" returned by the API as a departing/unknown signal
+                    const departMatch = raw.match(/departing|departed|即將|已離開|即將開出/i);
+                    const isDash = /^-+$/.test(raw);
+                    if (departMatch || isDash) {
+                        status = 'DEPARTING';
+                        // Use API system_time as the reference clock (option B) when available
+                        const base = systemTime
+                            ? new Date(String(systemTime).replace(' ', 'T'))
+                            : new Date();
+                        if (!Number.isNaN(base.getTime())) {
+                            absTime = base.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                        }
+                    }
+                }
+
+                // Normalize train length: treat 0 or missing as 1, cap to 2 (LRT uses up to 2 cars)
+                let tl = Number(route.train_length) || 0;
+                if (tl <= 0) tl = 1;
+                tl = Math.min(2, tl);
+
+                return {
+                    id: `lrt-${plat.platform_id}-${idx}`,
+                    destination: isTC ? route.dest_ch : route.dest_en,
+                    // `time` is HH:MM when meaningful; otherwise undefined/empty string
+                    time: absTime || '',
+                    platform: String(plat.platform_id),
+                    tti: raw, // keep raw text for backwards compatibility
+                    ttiMinutes: typeof ttiMinutes === 'number' ? ttiMinutes : null,
+                    status: status,
+                    routeNo: route.route_no,
+                    trainLength: tl
+                } as ETA;
+            });
             return { platform: String(plat.platform_id), etas };
         });
     } catch (error) {
@@ -131,7 +201,8 @@ export function normalizeBus(data: any, lang: 'EN' | 'TC' = 'EN'): (ETA & { stop
         data.busStop.forEach((stop: any) => {
             if (stop.bus && Array.isArray(stop.bus)) {
                 allBusEtas = [...allBusEtas, ...stop.bus.map((b: any, idx: number) => {
-                    const departureSecs = parseInt(b.departureTimeInSecond) || 0;
+                    // Clamp to 0 so overdue/negative values don't produce a past absolute time.
+                    const departureSecs = Math.max(0, parseInt(b.departureTimeInSecond) || 0);
                     const arrivalDate = new Date(now.getTime() + departureSecs * 1000);
                     const absTime = arrivalDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 

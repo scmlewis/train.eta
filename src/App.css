@@ -1,6 +1,8 @@
 :root {
   --primary-color: #6366f1;
   --bg-color: #0b0f1a;
+  /* measured at runtime via JS helper; fallback value used if not set */
+  --app-header-height: 56px;
   --surface-blur: rgba(17, 24, 39, 0.7);
   --surface-card: rgba(30, 41, 59, 0.4);
   --text-color: #f1f5f9;
@@ -112,6 +114,12 @@ body {
   padding-bottom: 7rem;
   display: flex;
   flex-direction: column;
+}
+
+/* Ensure anchored headers are positioned below the sticky app header */
+.accordion-header,
+.direction-header {
+  scroll-margin-top: calc(var(--app-header-height) + 8px);
 }
 
 /* Card & Highlights */
@@ -245,6 +253,11 @@ body {
 
 .accordion-content {
   overflow: hidden;
+}
+
+/* Ensure whole card anchors respect the sticky header when scrolled into view */
+.glass-card {
+  scroll-margin-top: calc(var(--app-header-height) + 8px);
 }
 
 /* ETA direction blocks — kept in DOM so CSS can animate collapse/expand */

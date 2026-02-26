@@ -3,7 +3,9 @@ export interface ETA {
     destination: string;
     time: string; // ISO String or valid transport time
     platform?: string;
-    tti?: string; // Time to incident/arrival in string (e.g. "3 mins")
+    tti?: string; // Original raw time string (e.g. "3 mins")
+    ttiMinutes?: number | null; // Parsed minutes as number when available (0,1,2...)
+    status?: 'DEPARTING'|'DEPARTED'|'IN_SERVICE'|'SCHEDULED'|'UNKNOWN';
     routeNo?: string;
     trainLength?: number;
     isScheduled?: boolean;

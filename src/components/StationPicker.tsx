@@ -6,6 +6,7 @@ import type { StationOption, TransportGroup } from '../constants/transportData';
 import { useAppStore } from '../store/useAppStore';
 import EtaDisplay from './EtaDisplay';
 import { fetchRouteStops } from '../services/busStops';
+import { scrollToElement, scrollToTop, setHeaderHeightVar } from '../utils/scroll';
 
 const CIRCULAR_BUS_ROUTES = new Set(['K53', 'K54', 'K68', 'K74', 'K75P', 'K53S']);
 
@@ -97,26 +98,17 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     const [openDirections, setOpenDirections] = useState<Record<string, Set<string>>>({});
     const groupHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
     const directionHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
+    const cardRefs = useRef<Record<string, HTMLElement | null>>({});
+
+    useEffect(() => {
+        // ensure CSS var for header height is set and kept in sync on resize
+        setHeaderHeightVar();
+        window.addEventListener('resize', setHeaderHeightVar);
+        return () => { window.removeEventListener('resize', setHeaderHeightVar); };
+    }, []);
 
     const forceScrollTop = useCallback(() => {
-        if (typeof window === 'undefined') return;
-        const root = document.documentElement;
-        const body = document.body;
-        const content = document.querySelector('.content') as HTMLElement | null;
-
-        const scrollNow = () => {
-            try { window.scrollTo({ top: 0, left: 0, behavior: 'auto' }); } catch { window.scrollTo(0, 0); }
-            if (root) root.scrollTop = 0;
-            if (body) body.scrollTop = 0;
-            if (content) content.scrollTop = 0;
-        };
-
-        scrollNow();
-        requestAnimationFrame(() => {
-            scrollNow();
-            requestAnimationFrame(scrollNow);
-        });
-        setTimeout(scrollNow, 120);
+        scrollToTop('auto');
     }, []);
 
     // FEATURE 1: Language-independent key for group state
@@ -138,14 +130,11 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                 return { ...prev, [routeKey]: new Set([dir]) };
             }
         });
+        // scroll to the newly toggled direction header (helper will retry if layout isn't ready)
+        // wait for expand/collapse animation to complete (0.3s) then scroll
         setTimeout(() => {
-            const elem = directionHeaderRefs.current[dir];
-            if (!elem) return;
-            const headerEl = document.querySelector('.app-header') as HTMLElement | null;
-            const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
-            const top = elem.getBoundingClientRect().top + window.scrollY - headerH - 8;
-            window.scrollTo({ top, behavior: 'smooth' });
-        }, 50);
+            scrollToElement(directionHeaderRefs.current[dir], { behavior: 'smooth' });
+        }, 350);
     };
 
     useEffect(() => {
@@ -334,15 +323,14 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         if (!returnAnchorGroupKey) return;
 
         setExpandedGroup(returnAnchorGroupKey);
+        // allow expansion to render and complete animation, then scroll; helper will retry if needed
         setTimeout(() => {
-            const elem = groupHeaderRefs.current[returnAnchorGroupKey];
-            if (!elem) return;
-            const headerEl = document.querySelector('.app-header') as HTMLElement | null;
-            const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
-            const top = elem.getBoundingClientRect().top + window.scrollY - headerH - 8;
-            window.scrollTo({ top, behavior: 'smooth' });
-            setReturnAnchorGroupKey(null);
-        }, 80);
+            if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+            const cardEl = cardRefs.current[returnAnchorGroupKey];
+            scrollToElement(cardEl, { behavior: 'smooth' }).then(() => {
+                setReturnAnchorGroupKey(null);
+            });
+        }, 360);
     }, [selectedStation, returnAnchorGroupKey, setReturnAnchorGroupKey]);
 
     useEffect(() => {
@@ -471,21 +459,20 @@ export default function StationList({ currentTab }: { currentTab: string }) {
             )}
 
             {filteredGroups.map((group: any) => (
-                <div key={resolveName(group.groupName)} className="glass-card" style={{ padding: 0, overflow: 'hidden', marginBottom: '0.4rem', border: expandedGroup === getGroupKey(group.groupName) ? '1px solid rgba(167, 139, 250, 0.2)' : '1px solid transparent' }}>
+                <div key={resolveName(group.groupName)} className="glass-card" ref={el => { if (el) cardRefs.current[getGroupKey(group.groupName)] = el; }} style={{ padding: 0, overflow: 'hidden', marginBottom: '0.4rem', border: expandedGroup === getGroupKey(group.groupName) ? '1px solid rgba(167, 139, 250, 0.2)' : '1px solid transparent' }}>
                     <button
                         className="accordion-header"
                         ref={el => { if (el) groupHeaderRefs.current[getGroupKey(group.groupName)] = el; }}
                         onClick={() => {
                             const groupKey = getGroupKey(group.groupName);
                             setExpandedGroup(expandedGroup === groupKey ? null : groupKey);
+                            // allow DOM updates and accordion animation then scroll the header into view
                             setTimeout(() => {
-                                const elem = groupHeaderRefs.current[getGroupKey(group.groupName)];
-                                if (!elem) return;
-                                const headerEl = document.querySelector('.app-header') as HTMLElement | null;
-                                const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
-                                const top = elem.getBoundingClientRect().top + window.scrollY - headerH - 8;
-                                window.scrollTo({ top, behavior: 'smooth' });
-                            }, 50);
+                                // blur any focused element to avoid browser scrolling it into view later
+                                if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+                                const cardEl = cardRefs.current[getGroupKey(group.groupName)];
+                                scrollToElement(cardEl, { behavior: 'smooth' });
+                            }, 350);
                         }}
                         aria-expanded={searchQuery.trim() ? true : expandedGroup === getGroupKey(group.groupName)}
                         aria-controls={`group-${getGroupKey(group.groupName)}`}

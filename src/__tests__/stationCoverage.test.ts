@@ -334,4 +334,76 @@ describe('normalizeLRT API normalizer', () => {
         expect((eta as any).routeNo).toBe('610');
         expect(eta.destination).toBeTruthy();
     });
+
+    it('normalizes train_length: treats 0 as 1 and caps values to 2', () => {
+        const fakeData = {
+            status: 1,
+            platform_list: [
+                {
+                    platform_id: 1,
+                    route_list: [
+                        { route_no: '610', dest_en: 'Yuen Long', dest_ch: '元朗', train_length: 0, time_en: '3 min', time_ch: '3 分鐘' },
+                        { route_no: '615', dest_en: 'Siu Hong', dest_ch: '兆康', train_length: 3, time_en: '5 min', time_ch: '5 分鐘' }
+                    ]
+                }
+            ]
+        };
+        const result = normalizeLRT(fakeData as any);
+        expect(result.length).toBeGreaterThan(0);
+        const etas = result[0].etas;
+        expect(etas[0].trainLength).toBe(1); // 0 -> 1
+        expect(etas[1].trainLength).toBe(2); // capped to 2
+    });
+
+    it('parses tti and status correctly for numeric and textual cases', () => {
+        const fakeData = {
+            status: 1,
+            platform_list: [
+                {
+                    platform_id: 1,
+                    route_list: [
+                        { route_no: '610', dest_en: 'Yuen Long', dest_ch: '元朗', train_length: 1, time_en: '0 min', time_ch: '0 分鐘' },
+                        { route_no: '615', dest_en: 'Siu Hong', dest_ch: '兆康', train_length: 1, time_en: '5 min', time_ch: '5 分鐘' },
+                        { route_no: '507', dest_en: 'Tin King', dest_ch: '田景', train_length: 1, time_en: 'Departing', time_ch: '即將開出' }
+                    ]
+                }
+            ]
+        };
+        const result = normalizeLRT(fakeData as any);
+        expect(result.length).toBeGreaterThan(0);
+        const etas = result[0].etas;
+        // first: 0 min -> ttiMinutes 0 and status DEPARTING
+        expect(etas[0].ttiMinutes).toBe(0);
+        expect(etas[0].status).toBe('DEPARTING');
+        // second: 5 min -> ttiMinutes 5 and IN_SERVICE, and time should be set (non-empty)
+        expect(etas[1].ttiMinutes).toBe(5);
+        expect(etas[1].status).toBe('IN_SERVICE');
+        expect(etas[1].time).toBeTruthy();
+        // third: textual departing -> status DEPARTING and ttiMinutes null
+        expect(etas[2].status).toBe('DEPARTING');
+        expect(etas[2].ttiMinutes).toBeNull();
+    });
+
+    it('treats bare "-" or "--" API times as DEPARTING', () => {
+        const fakeData = {
+            status: 1,
+            system_time: '2026-02-26 15:00:00',
+            platform_list: [
+                {
+                    platform_id: 1,
+                    route_list: [
+                        { route_no: '507', dest_en: 'Tin King', dest_ch: '田景', train_length: 1, time_en: '-', time_ch: '-' },
+                        { route_no: '507', dest_en: 'Tin King', dest_ch: '田景', train_length: 1, time_en: '--', time_ch: '--' }
+                    ]
+                }
+            ]
+        };
+        const result = normalizeLRT(fakeData as any);
+        const etas = result[0].etas;
+        expect(etas[0].status).toBe('DEPARTING');
+        expect(etas[1].status).toBe('DEPARTING');
+        // Should compute clock time from system_time
+        expect(etas[0].time).toBe('15:00');
+        expect(etas[1].time).toBe('15:00');
+    });
 });
