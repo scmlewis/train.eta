@@ -173,7 +173,7 @@ export const MTR_LINE_GROUPS: TransportGroup[] = [
             { id: 'MEF', name: getMTRName('MEF'), line: 'TML' },
             { id: 'NAC', name: getMTRName('NAC'), line: 'TML' },
             { id: 'AUS', name: getMTRName('AUS'), line: 'TML' },
-            { id: 'KOW', name: getMTRName('KOW'), line: 'TML' },
+            { id: 'ETS', name: getMTRName('ETS'), line: 'TML' },
             { id: 'HUH', name: getMTRName('HUH'), line: 'TML' },
             { id: 'HOM', name: getMTRName('HOM'), line: 'TML' },
             { id: 'TKW', name: getMTRName('TKW'), line: 'TML' },
