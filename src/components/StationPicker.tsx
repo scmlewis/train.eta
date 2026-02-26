@@ -200,7 +200,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     useEffect(() => {
         if (!expandedGroup) return;
         if (currentTab !== 'BUS') return;
-        const grp = groups.find((g: any) => getGroupKey(g.groupName) === expandedGroup);
+        const grp = groups.find((g: any) => getGroupKey(g.groupName) === expandedGroup) as BusDisplayGroup | undefined;
         if (!grp) return;
         const routeKey = grp.routeCode || (typeof grp.groupName === 'string' ? grp.groupName : (grp.groupName.en || grp.groupName.tc || resolveName(grp.groupName)));
         const directionCode = grp.directionCode as string | undefined;

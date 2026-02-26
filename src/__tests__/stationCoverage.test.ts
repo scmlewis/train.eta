@@ -16,15 +16,6 @@ import { normalizeMTR, normalizeLRT } from '../services/api';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** All unique LRT station IDs across all routes */
-const allLrtIds = (): string[] => {
-    const ids = new Set<string>();
-    for (const g of LRT_GROUPS) {
-        for (const s of g.stations) ids.add(String(s.id));
-    }
-    return [...ids];
-};
-
 /** All {line, id} pairs defined in MTR_LINE_GROUPS */
 const allMtrStations = (): Array<{ line: string; id: string; groupName: string }> =>
     MTR_LINE_GROUPS.flatMap(g =>
