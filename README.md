@@ -19,55 +19,104 @@ If you are developing a production application, we recommend updating the config
 export default defineConfig([
   globalIgnores(['dist']),
   {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+    **Train ETA — Production-ready Web App**
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+    Train ETA is a lightweight, fast web application built with React, TypeScript, and Vite that provides real-time estimated time-of-arrival (ETA) information for trains and buses. This repository contains the frontend application, utilities, and test suite used to display station coverage, pick stations, and present ETA cards and tables.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+    **Repository**: c:\Github\(Web app)\Train_ETA
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+    **Demo / Preview**
+    - Open `index.html` or run the dev server (see Quickstart) to view the app locally.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+    **Key Features**
+    - Real-time ETA display for transit lines (trains & buses).
+    - Interactive station picker and station coverage overview.
+    - Accessible UI components (`EtaDisplay`, `StationPicker`, `EtaCard`, etc.).
+    - Unit tests with Vitest and type-safe store/hooks.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+    Tech stack
+    - React 18 + TypeScript
+    - Vite for fast development & production builds
+    - Vitest for unit tests
+
+    Quickstart (Development)
+
+    Prerequisites
+    - Node.js 18+ and npm or yarn
+
+    Install dependencies
+
+    ```powershell
+    npm install
+    ```
+
+    Run dev server
+
+    ```powershell
+    npm run dev
+    ```
+
+    Open the development URL printed by Vite (typically http://localhost:5173).
+
+    Building for production
+
+    ```powershell
+    npm run build
+    ```
+
+    Serve production build locally
+
+    ```powershell
+    npm run preview
+    ```
+
+    Project Structure (Highlights)
+    - `src/` — application source code
+      - `components/` — React components (`EtaDisplay.tsx`, `StationPicker.tsx`, `EtaCard.tsx`, etc.)
+      - `services/` — API wrappers and data utilities (`api.ts`, `busStops.ts`)
+      - `store/` — application state hook (`useAppStore.ts`)
+      - `types/` — TypeScript type definitions
+    - `public/` — static assets
+    - `scripts/` — helper scripts for generating data and tests
+
+    Configuration & Data
+    - Static datasets (e.g., `bus.json`, `bus_utf8.json`, `lrt.json`) are included at project root for development and local testing.
+    - API integrations and environment-specific endpoints can be adjusted in `src/constants/config.ts`.
+
+    Testing
+
+    Run unit tests
+
+    ```powershell
+    npm test
+    ```
+
+    Or run vitest in watch mode
+
+    ```powershell
+    npm run test:watch
+    ```
+
+    Production Considerations
+    - Use a CDN or static hosting (Netlify, Vercel, GitHub Pages) for assets.
+    - Configure environment variables for production API endpoints and API keys.
+    - Enable HTTP caching and service workers if you need offline support.
+
+    Contributing
+    - Fork the repository, create a feature branch, and open a pull request.
+    - Run linting and tests before opening the PR.
+
+    Maintainer Notes
+    - The app is structured for clarity and testability. Keep UI components stateless where possible and move logic to services or hooks.
+
+    License
+    - See `LICENSE` in the repository root (if present); otherwise assume default project license.
+
+    Contact
+    - For questions or support, open an issue in this repository.
+
+    ---
+
+    If you'd like, I can also:
+    - Add a screenshot and badges (build/test coverage) to the top of the README.
+    - Add deployment instructions for a specific host (Vercel, Netlify, GitHub Pages).
