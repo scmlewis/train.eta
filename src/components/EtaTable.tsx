@@ -115,7 +115,12 @@ export default function EtaTable({ title, etas, trackColor = 'var(--primary-colo
                                                     <span style={{ fontSize: isFirst ? '1.1rem' : '1rem', fontWeight: isFirst ? 600 : 500 }}>{eta.destination}</span>
                                                     {!isBus && (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                            {displayTime && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{displayTime}</span>}
+                                                            {/* If column 1 shows a routeNo (LRT), the time caption is useful.
+                                                                If column 1 already shows the time (MTR, no routeNo), show platform instead. */}
+                                                            {eta.routeNo
+                                                                ? (displayTime && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{displayTime}</span>)
+                                                                : (eta.platform && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isTC ? `月台 ${eta.platform}` : `Plat. ${eta.platform}`}</span>)
+                                                            }
                                                             {typeof eta.trainLength !== 'undefined' && eta.trainLength !== null && (
                                                                 (() => {
                                                                     const displayCount = Math.min(2, Math.max(1, Number(eta.trainLength || 1)));
