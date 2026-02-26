@@ -1,7 +1,7 @@
 export const MTR_STATIONS: Record<string, { en: string, tc: string }> = {
     // Kwun Tong Line
     'WHA': { en: 'Whampoa', tc: '黃埔' }, 'HOM': { en: 'Ho Man Tin', tc: '何文田' }, 'YMT': { en: 'Yau Ma Tei', tc: '油麻地' },
-    'MOK': { en: 'Mong Kok', tc: '旺角' }, 'PEK': { en: 'Prince Edward', tc: '太子' }, 'SKM': { en: 'Shek Kip Mei', tc: '石硤尾' },
+    'MOK': { en: 'Mong Kok', tc: '旺角' }, 'PRE': { en: 'Prince Edward', tc: '太子' }, 'SKM': { en: 'Shek Kip Mei', tc: '石硤尾' },
     'KOT': { en: 'Kowloon Tong', tc: '九龍塘' }, 'LOF': { en: 'Lok Fu', tc: '樂富' }, 'DIH': { en: 'Diamond Hill', tc: '鑽石山' },
     'CHH': { en: 'Choi Hung', tc: '彩虹' }, 'KOB': { en: 'Kowloon Bay', tc: '九龍灣' }, 'NTK': { en: 'Ngau Tau Kok', tc: '牛頭角' },
     'KWT': { en: 'Kwun Tong', tc: '觀塘' }, 'LAT': { en: 'Lam Tin', tc: '藍田' }, 'YAT': { en: 'Yau Tong', tc: '油塘' },
@@ -16,7 +16,7 @@ export const MTR_STATIONS: Record<string, { en: string, tc: string }> = {
     'KET': { en: 'Kennedy Town', tc: '堅尼地城' }, 'HKU': { en: 'HKU', tc: '香港大學' }, 'SYP': { en: 'Sai Ying Pun', tc: '西營盤' },
     'SHW': { en: 'Sheung Wan', tc: '上環' }, 'WAC': { en: 'Wan Chai', tc: '灣仔' }, 'CAB': { en: 'Causeway Bay', tc: '銅鑼灣' },
     'TIH': { en: 'Tin Hau', tc: '天后' }, 'FOH': { en: 'Fortress Hill', tc: '炮台山' }, 'NOP': { en: 'North Point', tc: '北角' },
-    'QUB': { en: 'Quarry Bay', tc: '鰂魚涌' }, 'TAK': { en: 'Tai Koo', tc: '太古' }, 'SAW': { en: 'Sai Wan Ho', tc: '西灣河' },
+    'QUB': { en: 'Quarry Bay', tc: '鰂魚涌' }, 'TAK': { en: 'Tai Koo', tc: '太古' }, 'SWH': { en: 'Sai Wan Ho', tc: '西灣河' },
     'SKW': { en: 'Shau Kei Wan', tc: '筲箕灣' }, 'HFC': { en: 'Heng Fa Chuen', tc: '杏花邨' }, 'CHW': { en: 'Chai Wan', tc: '柴灣' },
     // South Island Line
     'OCP': { en: 'Ocean Park', tc: '海洋公園' }, 'WCH': { en: 'Wong Chuk Hang', tc: '黃竹坑' }, 'LET': { en: 'Lei Tung', tc: '利東' },

@@ -1,15 +1,16 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchMTR, fetchLRT, fetchBus } from '../services/api';
+import { fetchMTR, fetchLRT, fetchBus, extractBusRoute } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
 import EtaTable from './EtaTable';
 import type { ETA } from '../types/eta';
 import { getStationName, getLineColor } from '../constants/mtrData';
 import { BUS_STOP_NAMES } from '../constants/busStopNames';
+import { QUERY_CONFIG } from '../constants/config';
 import { Search } from 'lucide-react';
 
 // Type guards for data structures
-const isMTRData = (data: any): data is { up: ETA[], down: ETA[] } => data && 'up' in data && 'down' in data;
+const isMTRData = (data: any): data is { up: ETA[], down: ETA[], offline?: boolean, delayed?: boolean, message?: string } => data && 'up' in data && 'down' in data;
 const isLRTData = (data: any): data is { platform: string, etas: ETA[] }[] => Array.isArray(data) && data.length > 0 && 'platform' in data[0];
 
 // Enhanced "no match" empty state shown when the active destination filter has no ETAs
@@ -64,14 +65,14 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
             if (currentTab === 'MTR' && line) return fetchMTR(line, stationId);
             if (currentTab === 'LRT') return fetchLRT(stationId, language);
             if (currentTab === 'BUS') {
-                // Extract route name from bus stop ID (e.g., 'K65-D010' → 'K65')
-                const busRoute = line || (stationId ? stationId.split('-')[0] : '');
+                // Extract route name from bus stop ID (e.g. 'K65-D010' → 'K65')
+                const busRoute = stationId ? extractBusRoute(stationId, line) : '';
                 return fetchBus(busRoute, language);
             }
             throw new Error('Invalid query params');
         },
-        refetchInterval: 30000,
-        staleTime: 15000,
+        refetchInterval: QUERY_CONFIG.REFETCH_INTERVAL,
+        staleTime: QUERY_CONFIG.STALE_TIME,
     });
 
     const lastUpdated = useMemo(() => {
@@ -176,7 +177,25 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
         }
 
         if (currentTab === 'MTR' && isMTRData(data)) {
+            // Show offline/no-service state more gracefully than a red error card
+            if (data.offline) {
+                return (
+                    <div className="glass-card animate-fade-in" style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '1.1rem', marginBottom: '0.3rem' }}>
+                            {lang === 'tc' ? '🚇 服務暫停' : '🚇 Service Not Available'}
+                        </div>
+                        <div style={{ fontSize: '0.85rem' }}>
+                            {lang === 'tc' ? '港鐵服務暫未開始' : 'MTR service is not currently in operation'}
+                        </div>
+                    </div>
+                );
+            }
             const currentColor = line ? getLineColor(line) : 'var(--mtr-color)';
+            const delayBanner = data.delayed ? (
+                <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '8px', padding: '0.5rem 0.85rem', marginBottom: '0.5rem', fontSize: '0.82rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    ⚠️ {lang === 'tc' ? '服務延誤' : 'Service delay in progress'}
+                </div>
+            ) : null;
             const selectedDest = selectedFilterIndex !== null ? destinations[selectedFilterIndex] : null;
 
             // Translate all ETAs — don't filter yet, so we can keep both blocks in the DOM
@@ -200,21 +219,29 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
             const downTitle = downDests.length > 0 ? `${t.towards}${downDests.join(' / ')}` : '';
 
             const noResults = !showUp && !showDown && selectedDest !== null;
+            const noTrainsAtAll = allUp.length === 0 && allDown.length === 0;
 
             return (
                 <div className="animate-fade-in">
+                    {delayBanner}
                     {/* Both sections stay in the DOM so CSS max-height transition plays on collapse */}
-                    <div className={`eta-section ${showUp ? 'expanded' : 'collapsed'}`}>
-                        <div className="eta-section-inner">
-                            <EtaTable title={upTitle} etas={showUp ? filteredUp : allUp} trackColor={currentColor} />
+                    {noTrainsAtAll ? (
+                        <div style={{ color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'center' }}>{t.noTrains}</div>
+                    ) : (
+                        <>
+                        <div className={`eta-section ${showUp ? 'expanded' : 'collapsed'}`}>
+                            <div className="eta-section-inner">
+                                <EtaTable title={upTitle} etas={showUp ? filteredUp : allUp} trackColor={currentColor} />
+                            </div>
                         </div>
-                    </div>
-                    <div className={`eta-section ${showDown ? 'expanded' : 'collapsed'}`}>
-                        <div className="eta-section-inner">
-                            <EtaTable title={downTitle} etas={showDown ? filteredDown : allDown} trackColor={currentColor} />
+                        <div className={`eta-section ${showDown ? 'expanded' : 'collapsed'}`}>
+                            <div className="eta-section-inner">
+                                <EtaTable title={downTitle} etas={showDown ? filteredDown : allDown} trackColor={currentColor} />
+                            </div>
                         </div>
-                    </div>
-                    {noResults && <NoMatchCard lang={lang} />}
+                        {noResults && <NoMatchCard lang={lang} />}
+                        </>
+                    )}
                 </div>
             );
         }
@@ -250,8 +277,13 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
                 .slice(0, 5);
 
             if (filteredBusEtas.length === 0) return <div style={{ color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'center' }}>{t.noArrivalsAtStop}</div>;
-            const tableTitle = busDirectionLabel
-                ? `${lang === 'tc' ? '往 ' : 'To '}${busDirectionLabel}`
+            const liveDestinations = [...new Set(filteredBusEtas.map((eta: any) => eta.destination).filter(Boolean))];
+            const routeCode = (extractBusRoute(stationId, line) || '').trim().toUpperCase();
+            const meaningfulLiveDestinations = liveDestinations.filter(dest => String(dest).trim().toUpperCase() !== routeCode);
+            const liveDestinationLabel = meaningfulLiveDestinations.length > 0 ? meaningfulLiveDestinations.join(' / ') : undefined;
+            const effectiveDestination = liveDestinationLabel || busDirectionLabel;
+            const tableTitle = effectiveDestination
+                ? `${lang === 'tc' ? '往 ' : 'To '}${effectiveDestination}`
                 : (resolvedStationName || stationId);
             return <EtaTable title={tableTitle} etas={filteredBusEtas} trackColor="var(--bus-color)" />;
         }

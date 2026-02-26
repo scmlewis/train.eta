@@ -28,7 +28,7 @@ export const MTR_LINE_GROUPS: TransportGroup[] = [
             { id: 'HOM', name: getMTRName('HOM'), line: 'KTL' },
             { id: 'YMT', name: getMTRName('YMT'), line: 'KTL' },
             { id: 'MOK', name: getMTRName('MOK'), line: 'KTL' },
-            { id: 'PEK', name: getMTRName('PEK'), line: 'KTL' },
+            { id: 'PRE', name: getMTRName('PRE'), line: 'KTL' },
             { id: 'SKM', name: getMTRName('SKM'), line: 'KTL' },
             { id: 'KOT', name: getMTRName('KOT'), line: 'KTL' },
             { id: 'LOF', name: getMTRName('LOF'), line: 'KTL' },
@@ -52,7 +52,7 @@ export const MTR_LINE_GROUPS: TransportGroup[] = [
             { id: 'JOR', name: getMTRName('JOR'), line: 'TWL' },
             { id: 'YMT', name: getMTRName('YMT'), line: 'TWL' },
             { id: 'MOK', name: getMTRName('MOK'), line: 'TWL' },
-            { id: 'PEK', name: getMTRName('PEK'), line: 'TWL' },
+            { id: 'PRE', name: getMTRName('PRE'), line: 'TWL' },
             { id: 'SSP', name: getMTRName('SSP'), line: 'TWL' },
             { id: 'CSW', name: getMTRName('CSW'), line: 'TWL' },
             { id: 'LCK', name: getMTRName('LCK'), line: 'TWL' },
@@ -81,7 +81,7 @@ export const MTR_LINE_GROUPS: TransportGroup[] = [
             { id: 'NOP', name: getMTRName('NOP'), line: 'ISL' },
             { id: 'QUB', name: getMTRName('QUB'), line: 'ISL' },
             { id: 'TAK', name: getMTRName('TAK'), line: 'ISL' },
-            { id: 'SAW', name: getMTRName('SAW'), line: 'ISL' },
+            { id: 'SWH', name: getMTRName('SWH'), line: 'ISL' },
             { id: 'SKW', name: getMTRName('SKW'), line: 'ISL' },
             { id: 'HFC', name: getMTRName('HFC'), line: 'ISL' },
             { id: 'CHW', name: getMTRName('CHW'), line: 'ISL' }
@@ -144,7 +144,7 @@ export const MTR_LINE_GROUPS: TransportGroup[] = [
             { id: 'ADM', name: getMTRName('ADM'), line: 'EAL' },
             { id: 'EXC', name: getMTRName('EXC'), line: 'EAL' },
             { id: 'HUH', name: getMTRName('HUH'), line: 'EAL' },
-            { id: 'MOK', name: getMTRName('MOK'), line: 'EAL' },
+            { id: 'MKK', name: getMTRName('MKK'), line: 'EAL' },
             { id: 'KOT', name: getMTRName('KOT'), line: 'EAL' },
             { id: 'TAW', name: getMTRName('TAW'), line: 'EAL' },
             { id: 'SHT', name: getMTRName('SHT'), line: 'EAL' },
@@ -250,8 +250,8 @@ export const LRT_GROUPS: TransportGroup[] = [
         stations: [
             { id: '1', name: { en: 'Tuen Mun Ferry Pier', tc: '屯門碼頭' } },
             { id: '15', name: { en: 'Melody Garden', tc: '美樂' } },
-            { id: '25', name: { en: 'Butterfly', tc: '蝴蝶' } },
-            { id: '35', name: { en: 'Light Rail Depot', tc: '輕鐵車廠' } },
+            { id: '20', name: { en: 'Butterfly', tc: '蝴蝶' } },
+            { id: '30', name: { en: 'Light Rail Depot', tc: '輕鐵車廠' } },
             { id: '40', name: { en: 'Lung Mun', tc: '龍門' } },
             { id: '50', name: { en: 'Ching Yee', tc: '翠寧' } },
             { id: '60', name: { en: 'Shek Pai', tc: '石排' } },
@@ -329,8 +329,8 @@ export const LRT_GROUPS: TransportGroup[] = [
         stations: [
             { id: '1', name: { en: 'Tuen Mun Ferry Pier', tc: '屯門碼頭' } },
             { id: '15', name: { en: 'Melody Garden', tc: '美樂' } },
-            { id: '25', name: { en: 'Butterfly', tc: '蝴蝶' } },
-            { id: '35', name: { en: 'Light Rail Depot', tc: '輕鐵車廠' } },
+            { id: '20', name: { en: 'Butterfly', tc: '蝴蝶' } },
+            { id: '30', name: { en: 'Light Rail Depot', tc: '輕鐵車廠' } },
             { id: '40', name: { en: 'Lung Mun', tc: '龍門' } },
             { id: '120', name: { en: 'Tsing Shan Tsuen', tc: '青山村' } },
             { id: '130', name: { en: 'Tsing Wun', tc: '青雲' } },
@@ -352,8 +352,8 @@ export const LRT_GROUPS: TransportGroup[] = [
         stations: [
             { id: '1', name: { en: 'Tuen Mun Ferry Pier', tc: '屯門碼頭' } },
             { id: '15', name: { en: 'Melody Garden', tc: '美樂' } },
-            { id: '25', name: { en: 'Butterfly', tc: '蝴蝶' } },
-            { id: '35', name: { en: 'Light Rail Depot', tc: '輕鐵車廠' } },
+            { id: '20', name: { en: 'Butterfly', tc: '蝴蝶' } },
+            { id: '30', name: { en: 'Light Rail Depot', tc: '輕鐵車廠' } },
             { id: '40', name: { en: 'Lung Mun', tc: '龍門' } },
             { id: '120', name: { en: 'Tsing Shan Tsuen', tc: '青山村' } },
             { id: '130', name: { en: 'Tsing Wun', tc: '青雲' } },
@@ -454,7 +454,7 @@ export const LRT_GROUPS: TransportGroup[] = [
 export const BUS_GROUPS: TransportGroup[] = [
     {
         groupName: '506',
-        desc: { en: 'Tuen Mun Ferry Pier ↺ Tuen Mun Station', tc: '屯門碼頭 ↺ 屯門站' },
+        desc: { en: 'Tuen Mun Ferry Pier - Siu Lun', tc: '屯門碼頭 - 兆麟' },
         color: 'var(--bus-color)',
         stations: [
             { id: '506-D010', name: { en: 'Tuen Mun Ferry Pier', tc: '屯門碼頭' } },
@@ -465,8 +465,44 @@ export const BUS_GROUPS: TransportGroup[] = [
         ]
     },
     {
+        groupName: 'K12',
+        desc: { en: 'MTR Tai Po Market Station - Eightland Gardens', tc: '港鐵大埔墟站 - 八號花園' },
+        color: 'var(--bus-color)',
+        stations: [
+            { id: 'K12-D010', name: { en: 'Eightland Garden', tc: '八號花園' } },
+            { id: 'K12-D040', name: { en: 'Tai Po Market Station', tc: '大埔墟站' } }
+        ]
+    },
+    {
+        groupName: 'K14',
+        desc: { en: 'Tai Po Centre to MTR Tai Po Market Station (One Way)', tc: '大埔中心往港鐵大埔墟站（單向）' },
+        color: 'var(--bus-color)',
+        stations: [
+            { id: 'K14-D010', name: { en: 'Tai Po Mega Mall', tc: '大埔超級城' } },
+            { id: 'K14-D030', name: { en: 'Tai Po Market Station', tc: '大埔墟站' } }
+        ]
+    },
+    {
+        groupName: 'K17',
+        desc: { en: 'MTR Tai Po Market Station - Fu Shin', tc: '港鐵大埔墟站 - 富善' },
+        color: 'var(--bus-color)',
+        stations: [
+            { id: 'K17-D010', name: { en: 'Fu Shin', tc: '富善' } },
+            { id: 'K17-D030', name: { en: 'Tai Po Market Station', tc: '大埔墟站' } }
+        ]
+    },
+    {
+        groupName: 'K18',
+        desc: { en: 'MTR Tai Po Market Station - Kwong Fuk', tc: '港鐵大埔墟站 - 廣福' },
+        color: 'var(--bus-color)',
+        stations: [
+            { id: 'K18-D010', name: { en: 'Kwong Fuk', tc: '廣福' } },
+            { id: 'K18-D030', name: { en: 'Tai Po Market Station', tc: '大埔墟站' } }
+        ]
+    },
+    {
         groupName: 'K51',
-        desc: { en: 'Fu Tai ↔ Tuen Mun Ferry Pier', tc: '富泰 ↔ 屯門碼頭' },
+        desc: { en: 'Fu Tai - Tai Lam', tc: '富泰 - 大欖' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K51-D010', name: { en: 'Fu Tai', tc: '富泰' } },
@@ -484,7 +520,7 @@ export const BUS_GROUPS: TransportGroup[] = [
     },
     {
         groupName: 'K53',
-        desc: { en: 'Tuen Mun Station ↺ So Kwun Wat', tc: '屯門站 ↺ 掃管笏' },
+        desc: { en: 'MTR Tuen Mun Station - So Kwun Wat (Circular)', tc: '港鐵屯門站 - 掃管笏（循環線）' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K53-D010', name: { en: 'Tuen Mun Station', tc: '屯門站' } },
@@ -493,25 +529,25 @@ export const BUS_GROUPS: TransportGroup[] = [
     },
     {
         groupName: 'K54',
-        desc: { en: 'Wo Tin ↺ Tuen Mun Town Centre', tc: '和田 ↺ 屯門市中心' },
+        desc: { en: 'Wo Tin Estate - MTR Tuen Mun Station (Circular)', tc: '和田邨 - 港鐵屯門站（循環線）' },
         color: 'var(--bus-color)',
         stations: [
-            { id: 'K54-D010', name: { en: 'Wo Tin', tc: '和田' } },
-            { id: 'K54-D080', name: { en: 'Tuen Mun Town Centre', tc: '屯門市中心' } }
+            { id: 'K54-D010', name: { en: 'Tuen Mun Town Plaza', tc: '屯門市廣場' } },
+            { id: 'K54-D070', name: { en: 'Wo Tin Estate', tc: '和田邨' } }
         ]
     },
     {
         groupName: 'K58',
-        desc: { en: 'Fu Tai ↔ Castle Peak Bay', tc: '富泰 ↔ 青山灣' },
+        desc: { en: 'Fu Tai - Castle Peak Bay', tc: '富泰 - 青山灣' },
         color: 'var(--bus-color)',
         stations: [
-            { id: 'K58-D010', name: { en: 'Fu Tai', tc: '富泰' } },
-            { id: 'K58-D120', name: { en: 'Castle Peak Bay', tc: '青山灣' } }
+            { id: 'K58-D001', name: { en: 'So Kwun Wat Tsuen', tc: '掃管笏村' } },
+            { id: 'K58-D210', name: { en: 'Fu Tai', tc: '富泰' } }
         ]
     },
     {
         groupName: 'K65',
-        desc: { en: 'Lau Fau Shan ↔ Yuen Long', tc: '流浮山 ↔ 元朗' },
+        desc: { en: 'MTR Yuen Long Station - Lau Fau Shan', tc: '港鐵元朗站 - 流浮山' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K65-D010', name: { en: 'Lau Fau Shan', tc: '流浮山' } },
@@ -523,7 +559,7 @@ export const BUS_GROUPS: TransportGroup[] = [
     },
     {
         groupName: 'K66',
-        desc: { en: 'Tai Tong ↔ Long Ping', tc: '大棠 ↔ 朗屏' },
+        desc: { en: 'Long Ping - Tai Tong Wong Nai Tun Tsuen', tc: '朗屏 - 大棠黃泥墩村' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K66-D010', name: { en: 'Tai Tong', tc: '大棠' } },
@@ -532,7 +568,7 @@ export const BUS_GROUPS: TransportGroup[] = [
     },
     {
         groupName: 'K68',
-        desc: { en: 'Yuen Long Industrial Estate ↺ Yuen Long Town', tc: '元朗工業邨 ↺ 元朗市' },
+        desc: { en: 'Yuen Long Industrial Estate - Yuen Long Park (Circular)', tc: '元朗工業邨 - 元朗公園（循環線）' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K68-D010', name: { en: 'Yuen Long Industrial Estate', tc: '元朗工業邨' } },
@@ -541,7 +577,7 @@ export const BUS_GROUPS: TransportGroup[] = [
     },
     {
         groupName: 'K73',
-        desc: { en: 'Tin Heng ↺ Yuen Long Town', tc: '天恆 ↺ 元朗市' },
+        desc: { en: 'Tin Heng - Yuen Long West', tc: '天恆 - 元朗西' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K73-D010', name: { en: 'Tin Heng', tc: '天恆' } },
@@ -550,7 +586,7 @@ export const BUS_GROUPS: TransportGroup[] = [
     },
     {
         groupName: 'K74',
-        desc: { en: 'Tin Shui ↺ Yuen Long Town', tc: '天瑞 ↺ 元朗市' },
+        desc: { en: 'Tin Shui Wai Town Centre - Au Tau (Circular)', tc: '天水圍市中心 - 凹頭（循環線）' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K74-D010', name: { en: 'Tin Shui', tc: '天瑞' } },
@@ -559,7 +595,7 @@ export const BUS_GROUPS: TransportGroup[] = [
     },
     {
         groupName: 'K75P',
-        desc: { en: 'Tin Shui ↺ Hung Shui Kiu', tc: '天瑞 ↺ 洪水橋' },
+        desc: { en: 'Tin Shui - Hung Shui Kiu (Circular)', tc: '天水 - 洪水橋（循環線）' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K75P-D010', name: { en: 'Tin Shui', tc: '天瑞' } },
@@ -568,17 +604,17 @@ export const BUS_GROUPS: TransportGroup[] = [
     },
     {
         groupName: 'K76',
-        desc: { en: 'Tin Yat ↔ Tin Shui Wai Station', tc: '天逸 ↔ 天水圍站' },
+        desc: { en: 'Tin Heng - MTR Tin Shui Wai Station', tc: '天恆 - 港鐵天水圍站' },
         color: 'var(--bus-color)',
         stations: [
-            { id: 'K76-D010', name: { en: 'Tin Yat', tc: '天逸' } },
-            { id: 'K76-D020', name: { en: 'Tin Fu', tc: '天富' } },
-            { id: 'K76-D080', name: { en: 'Tin Shui Wai Station', tc: '天水圍站' } }
+            { id: 'K76-D010', name: { en: 'Tin Shui Wai Station', tc: '天水圍站' } },
+            { id: 'K76-D020', name: { en: 'Tin Yan Estate', tc: '天恩邨' } },
+            { id: 'K76-D040', name: { en: 'Tin Heng', tc: '天恆' } }
         ]
     },
     {
         groupName: 'K51A',
-        desc: { en: 'So Kwun Wat Tsuen ↺', tc: '掃管笏村 ↺' },
+        desc: { en: 'Fu Tai - So Kwun Wat', tc: '富泰 - 掃管笏' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K51A-D010', name: { en: 'So Kwun Wat Tsuen', tc: '掃管笏村' } }
@@ -586,7 +622,7 @@ export const BUS_GROUPS: TransportGroup[] = [
     },
     {
         groupName: 'K52A',
-        desc: { en: 'Tsang Tsui Columbarium ↺', tc: '曾咀靈灰安置所 ↺' },
+        desc: { en: 'MTR Tuen Mun Station - Tsang Tsui', tc: '港鐵屯門站 - 曾咀' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K52A-D010', name: { en: 'Tsang Tsui Columbarium', tc: '曾咀靈灰安置所' } }
@@ -611,7 +647,7 @@ export const BUS_GROUPS: TransportGroup[] = [
     },
     {
         groupName: 'K54A',
-        desc: { en: 'MTR Siu Hong Station ↺', tc: '港鐵兆康站 ↺' },
+        desc: { en: 'Wo Tin Estate - MTR Siu Hong Station', tc: '和田邨 - 港鐵兆康站' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K54A-D010', name: { en: 'MTR Siu Hong Station (North)', tc: '港鐵兆康站 (北)' } }
@@ -619,7 +655,7 @@ export const BUS_GROUPS: TransportGroup[] = [
     },
     {
         groupName: 'K65A',
-        desc: { en: 'Lau Fau Shan ↺ Tin Shui Wai', tc: '流浮山 ↺ 天水圍' },
+        desc: { en: 'MTR Tin Shui Wai Station - Lau Fau Shan', tc: '港鐵天水圍站 - 流浮山' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K65A-D010', name: { en: 'Lau Fau Shan', tc: '流浮山' } },
@@ -628,7 +664,7 @@ export const BUS_GROUPS: TransportGroup[] = [
     },
     {
         groupName: 'K75A',
-        desc: { en: 'LR Hung Shui Kiu ↔ Shek Po Tsuen', tc: '輕鐵洪水橋站 ↔ 石埗村' },
+        desc: { en: 'Tin Shui Wai Station - Hung Shui Kiu', tc: '天水圍站 - 洪水橋' },
         color: 'var(--bus-color)',
         stations: [
             { id: 'K75A-D010', name: { en: 'LR Hung Shui Kiu Stop', tc: '輕鐵洪水橋站' } },

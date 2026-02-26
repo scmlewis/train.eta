@@ -1,6 +1,23 @@
 import type { ETA } from '../types/eta';
+import { API_ENDPOINTS } from '../constants/config';
 
 const API_TIMEOUT = 10000;
+
+const LEGACY_MTR_STATION_ALIASES: Record<string, string> = {
+    PEK: 'PRE',
+    SAW: 'SWH'
+};
+
+/**
+ * Extracts the bus route name from a stop ID or falls back to the explicit
+ * line prop.  Stop IDs are always formatted as ROUTE-DIRECTION### (e.g.
+ * 'K51A-D010', '506-D020'), so everything before the first dash is the route.
+ */
+export function extractBusRoute(stationId: string, lineProp?: string): string {
+    if (lineProp) return lineProp;
+    const dashIdx = stationId.indexOf('-');
+    return dashIdx !== -1 ? stationId.slice(0, dashIdx) : stationId;
+}
 
 const fetchWithTimeout = async (resource: string, options: RequestInit = {}) => {
     const { timeout = API_TIMEOUT } = options as any;
@@ -23,15 +40,22 @@ const fetchWithTimeout = async (resource: string, options: RequestInit = {}) => 
 
 // Normalize Functions
 
-function normalizeMTR(data: any, stationCode: string, lineCode: string): { up: ETA[], down: ETA[] } {
+export type MTRResult = { up: ETA[], down: ETA[], offline?: boolean, delayed?: boolean, message?: string };
+
+export function normalizeMTR(data: any, stationCode: string, lineCode: string): MTRResult {
     try {
+        // status=0 means service is not available (outside operating hours or disruption).
+        // Handle this first so provider messages like "The contents are empty!" don't get mistaken for normal empty arrivals.
+        if (data?.status === 0) {
+            console.warn(`MTR service not available for ${lineCode}-${stationCode}:`, data.message || '(no message)');
+            return { up: [], down: [], offline: true, message: data.message || 'Service currently not available' };
+        }
         // If API explicitly indicates empty contents for this station, treat as no arrivals rather than a hard error.
         if (data && data.message && String(data.message).toLowerCase().includes('empty')) {
             return { up: [], down: [] };
         }
-        if (data.status === 0 || data.isdelay === 'Y') {
-            throw new Error(data.message || 'MTR Service Delay or Offline');
-        }
+        // isdelay=Y means delay but service is still running – log it as a warning but keep showing trains.
+        const delayed = data.isdelay === 'Y';
         let stationData = data.data[`${lineCode}-${stationCode}`];
         // Fallback: sometimes API keys may use different ordering or station codes; try to find a matching key
         if (!stationData && data.data && typeof data.data === 'object') {
@@ -54,7 +78,7 @@ function normalizeMTR(data: any, stationCode: string, lineCode: string): { up: E
             return { up: [], down: [] };
         }
 
-        const mapEtas = (list: any[] = []) => list.filter(item => item.valid === 'Y').map((item, idx) => ({
+        const mapEtas = (list: any[] = []) => list.map((item, idx) => ({
             id: `mtr-${item.seq}-${idx}`,
             destination: item.dest,
             time: item.time,
@@ -64,7 +88,8 @@ function normalizeMTR(data: any, stationCode: string, lineCode: string): { up: E
 
         return {
             up: mapEtas(stationData.UP),
-            down: mapEtas(stationData.DOWN)
+            down: mapEtas(stationData.DOWN),
+            ...(delayed && { delayed: true, message: data.message || 'Service delay reported' })
         };
     } catch (error) {
         console.error("MTR Normalization Error:", error);
@@ -72,7 +97,7 @@ function normalizeMTR(data: any, stationCode: string, lineCode: string): { up: E
     }
 }
 
-function normalizeLRT(data: any, lang: 'EN' | 'TC' = 'EN'): { platform: string, etas: ETA[] }[] {
+export function normalizeLRT(data: any, lang: 'EN' | 'TC' = 'EN'): { platform: string, etas: ETA[] }[]  {
     try {
         if (!data.platform_list || data.platform_list.length === 0) return [];
 
@@ -136,7 +161,8 @@ export function normalizeBus(data: any, lang: 'EN' | 'TC' = 'EN'): (ETA & { stop
 
 // Fetchers
 export const fetchMTR = async (line: string, station: string) => {
-    const url = `https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${line}&sta=${station}`;
+    const normalizedStation = LEGACY_MTR_STATION_ALIASES[station] || station;
+    const url = `${API_ENDPOINTS.MTR}?line=${line}&sta=${normalizedStation}`;
     try {
         const response = await fetchWithTimeout(url);
         if (!response.ok) {
@@ -144,7 +170,7 @@ export const fetchMTR = async (line: string, station: string) => {
             throw new Error(`MTR API responded with ${response.status}: ${text.slice(0, 100)}`);
         }
         const data = await response.json();
-        return normalizeMTR(data, station, line);
+        return normalizeMTR(data, normalizedStation, line);
     } catch (err: any) {
         console.error('MTR fetch error:', err);
         throw new Error(`Failed to fetch MTR data: ${err.message || 'Unknown error'}`);
@@ -152,7 +178,7 @@ export const fetchMTR = async (line: string, station: string) => {
 };
 
 export const fetchLRT = async (stationId: string, lang: 'EN' | 'TC' = 'EN') => {
-    const url = `https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?station_id=${stationId}`;
+    const url = `${API_ENDPOINTS.LRT}?station_id=${stationId}`;
     try {
         const response = await fetchWithTimeout(url);
         if (!response.ok) {
@@ -169,38 +195,12 @@ export const fetchLRT = async (stationId: string, lang: 'EN' | 'TC' = 'EN') => {
 
 export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
     const params = { language: lang === 'TC' ? 'zh' : 'en', routeName: route };
-    const qs = new URLSearchParams(params);
-    // Use the actual public API endpoint directly
-    const url = `https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule?${qs.toString()}`;
+    const url = API_ENDPOINTS.BUS;
 
     console.log('[fetchBus] Calling:', url);
     let lastErrMsg = '';
 
-    // Try direct API call first
-    try {
-        let response = await fetchWithTimeout(url);
-        if (response.ok) {
-            const rawData = await response.text();
-            const cleanData = rawData.replace(/^\uFEFF/, '');
-            try {
-                const data = JSON.parse(cleanData);
-                console.log('[fetchBus] Success with GET:', data);
-                return normalizeBus(data, lang);
-            } catch (parseErr) {
-                lastErrMsg = `GET parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
-                console.warn('[fetchBus] GET parse failed', parseErr);
-            }
-        } else {
-            const txt = await response.text().catch(() => '<no body>');
-            lastErrMsg = `GET status ${response.status}: ${txt.slice(0,100)}`;
-            console.warn('[fetchBus] GET failed', response.status, txt.slice(0, 100));
-        }
-    } catch (err: any) {
-        lastErrMsg = `GET request error: ${err && err.message}`;
-        console.warn('[fetchBus] GET request error', err);
-    }
-
-    // Fallback: POST with JSON
+    // API contract (revised Jan 2026): POST JSON payload to base endpoint
     try {
         let response = await fetchWithTimeout(url, {
             method: 'POST',
@@ -215,7 +215,7 @@ export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
                 console.log('[fetchBus] Success with POST:', data);
                 return normalizeBus(data, lang);
             } catch (parseErr) {
-                lastErrMsg = `POST-JSON parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
+                lastErrMsg = `POST parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
                 console.warn('[fetchBus] POST parse failed', parseErr);
             }
         } else {

@@ -49,10 +49,23 @@ lrt.json
 lrt_1.json
 lrt_3.json
 
+# Development/debugging scripts (temporary testing utilities)
+scripts/test-*.mjs
+scripts/debug-*.mjs
+
+# Build outputs and caches
+*.tsbuildinfo
+.cache/
+.tsc-out/
+
 # Environment variables
 .env
 .env.local
 .env.*.local
+
+# IDE temporary files
+.history/
+*.code-workspace
 
 # OS specific
 Thumbs.db

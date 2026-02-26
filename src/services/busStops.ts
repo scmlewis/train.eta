@@ -1,4 +1,5 @@
 import type { StationOption } from '../constants/transportData';
+import { API_ENDPOINTS } from '../constants/config';
 
 function normalizeStopId(id?: string) {
     return String(id || '').replace(/-n(?=[A-Z0-9])/i, '-').toUpperCase();
@@ -17,7 +18,7 @@ export type DirectionStops = {
 
 export async function fetchRouteStops(routeName: string, lang: 'EN' | 'TC' = 'EN') {
     const params = { language: lang === 'TC' ? 'zh' : 'en', routeName };
-    const res = await fetch('/api/bus', {
+    const res = await fetch(API_ENDPOINTS.BUS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params)

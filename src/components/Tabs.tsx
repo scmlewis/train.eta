@@ -11,7 +11,7 @@ export default function Tabs() {
         { id: 'MTR', label: isTC ? '港鐵' : 'MTR', icon: Building2, color: 'var(--mtr-color)' },
         { id: 'LRT', label: isTC ? '輕鐵' : 'Light Rail', icon: Train, color: 'var(--lrt-color)' },
         { id: 'BUS', label: isTC ? '巴士' : 'MTR Bus', icon: Bus, color: 'var(--bus-color)' },
-        { id: 'SETTINGS', label: isTC ? '關於' : 'About', icon: Settings, color: '#94a3b8' },
+        { id: 'SETTINGS', label: isTC ? '關於' : 'About', icon: Settings, color: 'var(--text-muted)' },
     ];
 
     return (

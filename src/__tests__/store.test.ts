@@ -15,6 +15,7 @@ beforeEach(() => {
     language: 'EN',
     searchQuery: '',
     selectedStation: null,
+    returnAnchorGroupKey: null,
     favoriteStations: []
   });
 });

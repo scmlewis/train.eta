@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
 
@@ -19,11 +20,10 @@ vi.mock('../components/EtaTable', () => ({
 import EtaDisplay from '../components/EtaDisplay';
 
 describe('EtaDisplay bus direction label', () => {
-  it('renders direction header prefix To + endpoint derived from BUS_STOP_NAMES', async () => {
+  it('renders direction header prefix To + destination from live ETA data', async () => {
     render(<EtaDisplay stationId="506-D010" stationName="Siu Lun" line="506" />);
     const table = await screen.findByTestId('eta-table');
     expect(table.textContent).toContain('To ');
-    // should include the endpoint name for 506-D (Tuen Mun Ferry Pier)
-    expect(table.textContent).toContain('Tuen Mun Ferry Pier');
+    expect(table.textContent).toContain('X');
   });
 });
