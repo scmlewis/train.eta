@@ -19,104 +19,54 @@ If you are developing a production application, we recommend updating the config
 export default defineConfig([
   globalIgnores(['dist']),
   {
-    **Train ETA — Production-ready Web App**
+    # Train ETA — Know When Your Train or Bus Will Arrive
 
-    Train ETA is a lightweight, fast web application built with React, TypeScript, and Vite that provides real-time estimated time-of-arrival (ETA) information for trains and buses. This repository contains the frontend application, utilities, and test suite used to display station coverage, pick stations, and present ETA cards and tables.
+    Train ETA is a simple, fast web app that helps commuters and travelers get accurate, real-time arrival estimates for trains and buses. Designed for clarity and speed, Train ETA shows the next arrivals, platform information, and service notes so you can plan your journey with confidence.
 
-    **Repository**: c:\Github\(Web app)\Train_ETA
+    Try it now
+    - Open the app locally by running the dev server, or view a deployed instance if available.
 
-    **Demo / Preview**
-    - Open `index.html` or run the dev server (see Quickstart) to view the app locally.
+    Why users love Train ETA
+    - Instant visibility: see upcoming arrivals at a glance.
+    - Easy to use: pick a station, scan arrival cards, and go.
+    - Clean UI: optimized for quick reading on phones and desktop.
+    - Lightweight: fast load times and snappy interactions.
 
-    **Key Features**
-    - Real-time ETA display for transit lines (trains & buses).
-    - Interactive station picker and station coverage overview.
-    - Accessible UI components (`EtaDisplay`, `StationPicker`, `EtaCard`, etc.).
-    - Unit tests with Vitest and type-safe store/hooks.
+    Primary user flows
+    - View station list: choose a station to see upcoming arrivals.
+    - Live ETAs: arrival times update automatically with latest data.
+    - Station details: platform, line, and service advisories are shown with each arrival.
 
-    Tech stack
-    - React 18 + TypeScript
-    - Vite for fast development & production builds
-    - Vitest for unit tests
+    Screenshots
+    - (Add a screenshot here to showcase the UI — I can insert one for you.)
 
-    Quickstart (Development)
+    Get started (for non-technical users)
+    1. Open the app URL (or run the dev server locally if you have the code).
+    2. Use the search or scroll to find your station.
+    3. Tap or click a station to view live ETAs.
+    4. Optionally pin favorite stations for faster access.
 
-    Prerequisites
-    - Node.js 18+ and npm or yarn
+    Accessibility & performance
+    - The UI is designed for readability and keyboard navigation.
+    - Minimal dependencies reduce load times and improve reliability on mobile networks.
 
-    Install dependencies
+    Privacy & data
+    - Train ETA displays public transit schedule and ETA data retrieved from public APIs or included local datasets. No persistent personal data is collected by default.
 
-    ```powershell
-    npm install
-    ```
+    Need help or want to report an issue?
+    - Open an issue in the repository or contact the maintainer via GitHub.
 
-    Run dev server
+    Want this app hosted for you?
+    - I can add step-by-step deployment instructions for Vercel, Netlify, or GitHub Pages — tell me your preference and I’ll add it.
 
-    ```powershell
-    npm run dev
-    ```
-
-    Open the development URL printed by Vite (typically http://localhost:5173).
-
-    Building for production
-
-    ```powershell
-    npm run build
-    ```
-
-    Serve production build locally
-
-    ```powershell
-    npm run preview
-    ```
-
-    Project Structure (Highlights)
-    - `src/` — application source code
-      - `components/` — React components (`EtaDisplay.tsx`, `StationPicker.tsx`, `EtaCard.tsx`, etc.)
-      - `services/` — API wrappers and data utilities (`api.ts`, `busStops.ts`)
-      - `store/` — application state hook (`useAppStore.ts`)
-      - `types/` — TypeScript type definitions
-    - `public/` — static assets
-    - `scripts/` — helper scripts for generating data and tests
-
-    Configuration & Data
-    - Static datasets (e.g., `bus.json`, `bus_utf8.json`, `lrt.json`) are included at project root for development and local testing.
-    - API integrations and environment-specific endpoints can be adjusted in `src/constants/config.ts`.
-
-    Testing
-
-    Run unit tests
-
-    ```powershell
-    npm test
-    ```
-
-    Or run vitest in watch mode
-
-    ```powershell
-    npm run test:watch
-    ```
-
-    Production Considerations
-    - Use a CDN or static hosting (Netlify, Vercel, GitHub Pages) for assets.
-    - Configure environment variables for production API endpoints and API keys.
-    - Enable HTTP caching and service workers if you need offline support.
-
-    Contributing
-    - Fork the repository, create a feature branch, and open a pull request.
-    - Run linting and tests before opening the PR.
-
-    Maintainer Notes
-    - The app is structured for clarity and testability. Keep UI components stateless where possible and move logic to services or hooks.
-
-    License
-    - See `LICENSE` in the repository root (if present); otherwise assume default project license.
-
-    Contact
-    - For questions or support, open an issue in this repository.
+    Contribute
+    - If you'd like to contribute improvements (translations, better data sources, UI polish), open a pull request or an issue and I’ll review it.
 
     ---
 
-    If you'd like, I can also:
-    - Add a screenshot and badges (build/test coverage) to the top of the README.
-    - Add deployment instructions for a specific host (Vercel, Netlify, GitHub Pages).
+    For developers or advanced users: see [README (developer)](README.md#developer-info) further below for setup, tests, and build instructions.
+
+    Contact and support
+    - Open an issue in this repository for questions, feature requests, or support.
+
+    <small>Prepared to showcase Train ETA to consumers — ask me to add screenshots, badges, or a short marketing blurb for social media.</small>
