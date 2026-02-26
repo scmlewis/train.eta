@@ -17,10 +17,3 @@ Train ETA is a lightweight web app that shows the next arrivals for trains and b
 
 ## Contribute
 Open an issue or submit a pull request — contributions welcome.
-
-## Developer info
-See the `src/` folder for app code and `scripts/` for utilities. Run tests with `npm test`.
-
----
-
-(If you want a more detailed README with screenshots, badges, or deployment instructions for Vercel/Netlify/GitHub Pages, tell me which host and I will add them.)
