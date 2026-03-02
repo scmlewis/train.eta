@@ -5,6 +5,7 @@ import { BUS_STOP_NAMES } from '../constants/busStopNames';
 import type { StationOption, TransportGroup } from '../constants/transportData';
 import { useAppStore } from '../store/useAppStore';
 import EtaDisplay from './EtaDisplay';
+import NearbyStations from './NearbyStations';
 import { fetchRouteStops } from '../services/busStops';
 import { scrollToElement, scrollToTop, setHeaderHeightVar } from '../utils/scroll';
 
@@ -90,7 +91,7 @@ function buildBusDirectionGroups(baseGroups: TransportGroup[]): BusDisplayGroup[
 }
 
 export default function StationList({ currentTab }: { currentTab: string }) {
-    const { language, searchQuery, setSearchQuery, selectedStation, setSelectedStation, returnAnchorGroupKey, setReturnAnchorGroupKey } = useAppStore();
+    const { language, searchQuery, setSearchQuery, selectedStation, setSelectedStation, returnAnchorGroupKey, setReturnAnchorGroupKey, nearbyStations } = useAppStore();
     const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
     const [stationLastUpdated, setStationLastUpdated] = useState<string | null>(null);
     const refetchersRef = useRef<Array<() => void>>([]);
@@ -375,6 +376,10 @@ export default function StationList({ currentTab }: { currentTab: string }) {
 
     return (
         <div role="listbox" className="accordion-list animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            {/* Nearby stations pinned section */}
+            {nearbyStations && nearbyStations.length > 0 && !searchQuery.trim() && (
+                <NearbyStations stations={nearbyStations} />
+            )}
             {/* FEATURE 3: Enhanced empty state with icon and helpful suggestions */}
             {filteredGroups.length === 0 && searchQuery && (
                 <div className="glass-card" style={{ 

@@ -20,4 +20,5 @@ export interface Station {
     mode: TransportMode;
     lat?: number;
     lng?: number;
+    distanceKm?: number; // populated by geolocation nearby search
 }

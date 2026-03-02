@@ -1,9 +1,22 @@
-import { Search, ChevronLeft } from 'lucide-react';
+import { Search, ChevronLeft, LocateFixed, Loader2 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { getCurrentPosition, findNearestStations } from '../utils/geolocation';
 
 export default function Header() {
-    const { language, setLanguage, currentTab, setSearchQuery, searchQuery, selectedStation, setSelectedStation } = useAppStore();
+    const { language, setLanguage, currentTab, setSearchQuery, searchQuery, selectedStation, setSelectedStation, isLocating, locationError, setIsLocating, setNearbyStations, setLocationError } = useAppStore();
     const isTC = language === 'TC';
+
+    const handleNearby = async () => {
+        if (isLocating) return;
+        setIsLocating(true);
+        try {
+            const coords = await getCurrentPosition();
+            const results = findNearestStations(coords.latitude, coords.longitude, 3);
+            setNearbyStations(results);
+        } catch (err) {
+            setLocationError(typeof err === 'string' ? err : 'Unable to get location.');
+        }
+    };
 
     const tabTitles: Record<string, string> = {
         MTR: isTC ? '港鐵' : 'MTR',
@@ -51,7 +64,36 @@ export default function Header() {
                     >
                         {isTC ? '繁' : 'EN'}
                     </button>
-                    {/* Near button removed while geolocation is on hold */}
+                    {!selectedStation && (currentTab === 'MTR' || currentTab === 'LRT' || currentTab === 'BUS') && (
+                        <div style={{ position: 'relative' }}>
+                            <button
+                                type="button"
+                                aria-label={isTC ? '尋找附近車站' : 'Find nearby stations'}
+                                onClick={handleNearby}
+                                disabled={isLocating}
+                                style={{
+                                    background: locationError ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.08)',
+                                    border: `1px solid ${locationError ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                                    borderRadius: '12px',
+                                    height: '38px',
+                                    minWidth: '38px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: locationError ? '#f87171' : 'white',
+                                    cursor: isLocating ? 'default' : 'pointer',
+                                    opacity: isLocating ? 0.7 : 1,
+                                    transition: 'background 0.15s, border-color 0.15s',
+                                }}
+                                title={locationError ?? (isTC ? '尋找附近車站' : 'Find nearby stations')}
+                            >
+                                {isLocating
+                                    ? <Loader2 size={17} className="animate-spin" />
+                                    : <LocateFixed size={17} />
+                                }
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 

@@ -8,6 +8,8 @@ export interface StationOption {
     lineColor?: string;
     group?: string;
     desc?: string | { en: string, tc: string };
+    lat?: number;
+    lng?: number;
 }
 
 export interface TransportGroup {
