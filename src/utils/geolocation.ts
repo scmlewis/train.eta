@@ -175,9 +175,13 @@ function buildCandidates(userLat: number, userLng: number): NearbyStation[] {
 // Main public function
 // ---------------------------------------------------------------------------
 
+/** Maximum walking distance (km) — stations beyond this are not shown. */
+export const NEARBY_THRESHOLD_KM = 3;
+
 /**
  * Returns the nearest stations grouped by transport mode (MTR / LRT / BUS).
- * Each group is sorted ascending by distance and capped at `limitPerMode` entries.
+ * Each group is sorted ascending by distance, filtered to within NEARBY_THRESHOLD_KM,
+ * and capped at `limitPerMode` entries.
  */
 export function findNearestStations(
     userLat: number,
@@ -188,7 +192,7 @@ export function findNearestStations(
 
     const pick = (mode: 'MTR' | 'LRT' | 'BUS') =>
         all
-            .filter((s) => s.mode === mode)
+            .filter((s) => s.mode === mode && s.distanceKm <= NEARBY_THRESHOLD_KM)
             .sort((a, b) => a.distanceKm - b.distanceKm)
             .slice(0, limitPerMode);
 

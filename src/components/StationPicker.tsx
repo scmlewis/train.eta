@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronUp, RotateCw, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, RotateCw, Search, MapPin } from 'lucide-react';
 import { MTR_LINE_GROUPS, LRT_GROUPS, BUS_GROUPS } from '../constants/transportData';
 import { BUS_STOP_NAMES } from '../constants/busStopNames';
 import type { StationOption, TransportGroup } from '../constants/transportData';
@@ -345,12 +345,18 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         return () => { refetchersRef.current = refetchersRef.current.filter(f => f !== fn); };
     }, []);
 
+    // Resolve a station's display name respecting TC and the nameTc field (set by geolocation)
+    const resolveStationName = (station: any) => {
+        if (language === 'TC' && station.nameTc) return station.nameTc;
+        return resolveName(station.name);
+    };
+
     if (selectedStation) {
         const station = selectedStation as any;
         return (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem', margin: '0.4rem 0' }}>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>{resolveName(station.name)}</h2>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>{resolveStationName(station)}</h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {stationLastUpdated && <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>{(language === 'TC' ? '更新: ' : 'Last Updated: ')}{stationLastUpdated}</span>}
                         <button
@@ -365,7 +371,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                 <EtaDisplay
                     key={`${station.mode || currentTab}-${station.id}`}
                     stationId={station.id}
-                    stationName={resolveName(station.name)}
+                    stationName={resolveStationName(station)}
                     line={station.line || station.group}
                     mode={station.mode}
                     onUpdateTime={setStationLastUpdated}
@@ -377,10 +383,34 @@ export default function StationList({ currentTab }: { currentTab: string }) {
 
     return (
         <div role="listbox" className="accordion-list animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            {/* Nearby stations pinned section */}
-            {nearbyStations && (nearbyStations.MTR.length > 0 || nearbyStations.LRT.length > 0 || nearbyStations.BUS.length > 0) && !searchQuery.trim() && (
-                <NearbyStations stations={nearbyStations} />
-            )}
+            {/* Nearby stations pinned section — filtered to current tab's mode only */}
+            {nearbyStations && !searchQuery.trim() && (() => {
+                const isTransportTab = currentTab === 'MTR' || currentTab === 'LRT' || currentTab === 'BUS';
+                if (!isTransportTab) return null;
+                const modeArr = nearbyStations[currentTab as 'MTR' | 'LRT' | 'BUS'];
+                if (modeArr.length > 0) {
+                    const filtered = { MTR: [], LRT: [], BUS: [], [currentTab]: modeArr } as typeof nearbyStations;
+                    return <NearbyStations stations={filtered} />;
+                }
+                // Location was found but no stations within threshold for this mode
+                return (
+                    <div style={{
+                        margin: '0 0 0.75rem 0',
+                        padding: '0.75rem 0.9rem',
+                        borderRadius: '14px',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        color: 'var(--text-muted)',
+                        fontSize: '0.85rem',
+                    }}>
+                        <MapPin size={14} />
+                        <span>{language === 'TC' ? '附近3公里內沒有車站' : 'No stations within 3 km'}</span>
+                    </div>
+                );
+            })()}
             {/* FEATURE 3: Enhanced empty state with icon and helpful suggestions */}
             {filteredGroups.length === 0 && searchQuery && (
                 <div className="glass-card" style={{ 
