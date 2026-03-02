@@ -1,15 +1,16 @@
 import { X, MapPin, Train, TramFront, Bus } from 'lucide-react';
-import type { Station } from '../types/eta';
+import type { NearbyStation, NearbyStationGroups } from '../utils/geolocation';
+import { MTR_LINE_NAMES } from '../utils/geolocation';
 import { useAppStore } from '../store/useAppStore';
 
 type Props = {
-    stations: (Station & { distanceKm: number })[];
+    stations: NearbyStationGroups;
 };
 
 const MODE_ICON: Record<string, React.ReactNode> = {
-    MTR: <Train size={15} />,
-    LRT: <TramFront size={15} />,
-    BUS: <Bus size={15} />,
+    MTR: <Train size={14} />,
+    LRT: <TramFront size={14} />,
+    BUS: <Bus size={14} />,
 };
 
 const MODE_LABEL: Record<string, { en: string; tc: string }> = {
@@ -23,33 +24,148 @@ function formatDistance(km: number): string {
     return `${km.toFixed(1)} km`;
 }
 
+/** Resolve a raw line code or route number to a displayable string. */
+function resolveLineLabel(mode: string, line: string | undefined, isTC: boolean): string {
+    if (!line) return '';
+    if (mode === 'MTR') {
+        const names = MTR_LINE_NAMES[line];
+        if (names) return isTC ? names.tc : names.en;
+    }
+    // LRT and BUS: `line` is the route number — display as-is
+    return line;
+}
+
+interface SectionProps {
+    mode: 'MTR' | 'LRT' | 'BUS';
+    entries: NearbyStation[];
+    isTC: boolean;
+    onSelect: (s: NearbyStation) => void;
+    isLast: boolean;
+}
+
+function ModeSection({ mode, entries, isTC, onSelect, isLast }: SectionProps) {
+    if (entries.length === 0) return null;
+
+    const modeLabel = MODE_LABEL[mode][isTC ? 'tc' : 'en'];
+
+    return (
+        <div style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.06)' }}>
+            {/* Mode sub-header */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.45rem 0.9rem 0.3rem',
+                color: 'var(--text-muted)',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+            }}>
+                {MODE_ICON[mode]}
+                <span>{modeLabel}</span>
+            </div>
+
+            {/* Station rows */}
+            {entries.map((station, index) => {
+                const displayName = isTC ? (station.nameTc || station.name) : station.name;
+                const lineLabel = resolveLineLabel(mode, station.line, isTC);
+                const isLastRow = index === entries.length - 1;
+
+                return (
+                    <button
+                        key={`${station.mode}:${station.id}:${index}`}
+                        type="button"
+                        onClick={() => onSelect(station)}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.55rem 0.9rem 0.55rem 2rem',
+                            background: 'none',
+                            border: 'none',
+                            borderBottom: isLastRow ? 'none' : '1px solid rgba(255,255,255,0.04)',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            gap: '0.75rem',
+                            transition: 'background 0.15s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                    >
+                        {/* Name + line info */}
+                        <div style={{ minWidth: 0 }}>
+                            <div style={{
+                                color: 'var(--text-primary)',
+                                fontSize: '0.91rem',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                            }}>
+                                {displayName}
+                            </div>
+                            {lineLabel && (
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: '0.08rem' }}>
+                                    {lineLabel}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Distance badge */}
+                        <span style={{
+                            flexShrink: 0,
+                            fontSize: '0.74rem',
+                            fontWeight: 600,
+                            color: 'var(--text-muted)',
+                            background: 'rgba(255,255,255,0.06)',
+                            borderRadius: '8px',
+                            padding: '0.18rem 0.5rem',
+                            whiteSpace: 'nowrap',
+                        }}>
+                            {formatDistance(station.distanceKm)}
+                        </span>
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
 export default function NearbyStations({ stations }: Props) {
     const { language, setSelectedStation, clearNearbyStations } = useAppStore();
     const isTC = language === 'TC';
 
-    if (stations.length === 0) return null;
+    const activeModes = (['MTR', 'LRT', 'BUS'] as const).filter(m => stations[m].length > 0);
+    if (activeModes.length === 0) return null;
 
     return (
-        <div
-            style={{
-                margin: '0 0 0.75rem 0',
-                borderRadius: '14px',
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                overflow: 'hidden',
-            }}
-        >
+        <div style={{
+            margin: '0 0 0.75rem 0',
+            borderRadius: '14px',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            overflow: 'hidden',
+        }}>
             {/* Header row */}
-            <div
-                style={{
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.6rem 0.9rem 0.5rem',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+            }}>
+                <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.6rem 0.9rem 0.5rem',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
-                }}
-            >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+                    gap: '0.4rem',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.03em',
+                    textTransform: 'uppercase',
+                }}>
                     <MapPin size={13} />
                     <span>{isTC ? '附近車站' : 'Nearby Stations'}</span>
                 </div>
@@ -73,67 +189,17 @@ export default function NearbyStations({ stations }: Props) {
                 </button>
             </div>
 
-            {/* Station cards */}
-            <div>
-                {stations.map((station, index) => {
-                    const modeLabel = MODE_LABEL[station.mode]?.[isTC ? 'tc' : 'en'] ?? station.mode;
-                    const lineInfo = station.line ? `${modeLabel} · ${station.line}` : modeLabel;
-                    const isLast = index === stations.length - 1;
-
-                    return (
-                        <button
-                            key={`${station.mode}:${station.id}:${index}`}
-                            type="button"
-                            onClick={() => setSelectedStation(station)}
-                            style={{
-                                width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '0.65rem 0.9rem',
-                                background: 'none',
-                                border: 'none',
-                                borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)',
-                                cursor: 'pointer',
-                                textAlign: 'left',
-                                gap: '0.75rem',
-                                transition: 'background 0.15s',
-                            }}
-                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-                            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                        >
-                            {/* Mode icon + station info */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', minWidth: 0 }}>
-                                <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
-                                    {MODE_ICON[station.mode]}
-                                </span>
-                                <div style={{ minWidth: 0 }}>
-                                    <div style={{ color: 'var(--text-primary)', fontSize: '0.92rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {station.name}
-                                    </div>
-                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.1rem' }}>
-                                        {lineInfo}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Distance badge */}
-                            <span style={{
-                                flexShrink: 0,
-                                fontSize: '0.75rem',
-                                fontWeight: 600,
-                                color: 'var(--text-muted)',
-                                background: 'rgba(255,255,255,0.06)',
-                                borderRadius: '8px',
-                                padding: '0.2rem 0.55rem',
-                                whiteSpace: 'nowrap',
-                            }}>
-                                {formatDistance(station.distanceKm)}
-                            </span>
-                        </button>
-                    );
-                })}
-            </div>
+            {/* One section per mode */}
+            {activeModes.map((mode, i) => (
+                <ModeSection
+                    key={mode}
+                    mode={mode}
+                    entries={stations[mode]}
+                    isTC={isTC}
+                    onSelect={setSelectedStation}
+                    isLast={i === activeModes.length - 1}
+                />
+            ))}
         </div>
     );
 }

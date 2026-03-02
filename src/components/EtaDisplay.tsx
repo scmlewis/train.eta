@@ -33,8 +33,10 @@ function NoMatchCard({ lang }: { lang: 'en' | 'tc' }) {
     );
 }
 
-export default function EtaDisplay({ stationId, stationName, line, onUpdateTime, onRegisterRefetch }: { stationId: string, stationName?: string, line?: string, onUpdateTime?: (t: string | null) => void, onRegisterRefetch?: (fn: () => void) => () => void }) {
+export default function EtaDisplay({ stationId, stationName, line, mode, onUpdateTime, onRegisterRefetch }: { stationId: string, stationName?: string, line?: string, mode?: string, onUpdateTime?: (t: string | null) => void, onRegisterRefetch?: (fn: () => void) => () => void }) {
     const { currentTab, language, selectedStation } = useAppStore();
+    // When a nearby station is clicked from a different tab, use its own mode rather than currentTab
+    const effectiveTab = (mode as typeof currentTab) ?? currentTab;
     const [selectedFilterIndex, setSelectedFilterIndex] = useState<number | null>(null);
     const lang = language.toLowerCase() as 'en' | 'tc';
     const refetchRef = useRef<(() => void) | null>(null);
@@ -54,17 +56,17 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
     // MTR translation is done client-side, so language does not affect the raw API response.
     // Exclude it from the key to avoid re-fetching (and losing filter state) on every language toggle.
     const queryKey = useMemo(() =>
-        currentTab === 'MTR'
+        effectiveTab === 'MTR'
             ? ['eta', 'MTR', stationId, line].filter(Boolean) as string[]
-            : ['eta', currentTab, stationId, line, language].filter(Boolean) as string[],
-    [currentTab, stationId, line, language]);
+            : ['eta', effectiveTab, stationId, line, language].filter(Boolean) as string[],
+    [effectiveTab, stationId, line, language]);
 
     const { data, isLoading, isError, error, refetch, dataUpdatedAt } = useQuery<any, Error>({
         queryKey,
         queryFn: () => {
-            if (currentTab === 'MTR' && line) return fetchMTR(line, stationId);
-            if (currentTab === 'LRT') return fetchLRT(stationId, language);
-            if (currentTab === 'BUS') {
+            if (effectiveTab === 'MTR' && line) return fetchMTR(line, stationId);
+            if (effectiveTab === 'LRT') return fetchLRT(stationId, language);
+            if (effectiveTab === 'BUS') {
                 // Extract route name from bus stop ID (e.g. 'K65-D010' → 'K65')
                 const busRoute = stationId ? extractBusRoute(stationId, line) : '';
                 return fetchBus(busRoute, language);
@@ -99,7 +101,7 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
     }, []); // empty deps - intentional, uses refs internally
 
     const busDirectionLabel = useMemo(() => {
-        if (currentTab !== 'BUS' || !stationId) return undefined;
+        if (effectiveTab !== 'BUS' || !stationId) return undefined;
         const match = stationId.match(/^([^-]+)-([A-Z])/);
         if (!match) return undefined;
         const [, route, dir] = match;
@@ -110,7 +112,7 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
         if (!stops.length) return undefined;
         const lastName = stops[stops.length - 1][1];
         return lang === 'tc' ? lastName.tc : lastName.en;
-    }, [currentTab, stationId, lang]);
+    }, [effectiveTab, stationId, lang]);
 
     const resolvedStationName = useMemo(() => {
         // First, try to get the bilingual name from the store's selectedStation
@@ -118,7 +120,7 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
             return resolveName(selectedStation.name);
         }
         // Fall back to the prop for bus stops or when no selectedStation
-        if (currentTab === 'BUS' && stationId) {
+        if (effectiveTab === 'BUS' && stationId) {
             const entry = BUS_STOP_NAMES[stationId];
             if (entry) {
                 return lang === 'tc' ? entry.tc : entry.en;
@@ -126,25 +128,25 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
         }
         // Last resort: use the passed-in stationName prop
         return stationName || '';
-    }, [selectedStation, currentTab, stationId, lang, stationName]);
+    }, [selectedStation, effectiveTab, stationId, lang, stationName]);
 
     const destinations = useMemo(() => {
         if (!data) return [];
         let allDests: string[] = [];
 
-        if (currentTab === 'MTR' && isMTRData(data)) {
+        if (effectiveTab === 'MTR' && isMTRData(data)) {
             // Sort by raw station code for stable order across language switches
             const rawCodes = [...new Set([...data.up, ...data.down].map(e => e.destination))].sort();
             allDests = rawCodes.map(code => getStationName(code, lang));
             return allDests; // already in stable order, skip final .sort()
-        } else if (currentTab === 'LRT' && isLRTData(data)) {
+        } else if (effectiveTab === 'LRT' && isLRTData(data)) {
             allDests = [...new Set(data.flatMap(p => p.etas).map(e => e.destination))];
-        } else if (currentTab === 'BUS' && Array.isArray(data)) {
+        } else if (effectiveTab === 'BUS' && Array.isArray(data)) {
             allDests = [...new Set(data.map(e => e.destination))];
         }
 
         return allDests.sort();
-    }, [data, currentTab, lang]);
+    }, [data, effectiveTab, lang]);
 
     // ⚠️ ALL hooks must be above any early returns (Rules of Hooks)
 
@@ -172,11 +174,11 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
 
     const renderContent = () => {
         if (!data) {
-            console.warn('[EtaDisplay] No data received', { currentTab, stationId, line, data });
+            console.warn('[EtaDisplay] No data received', { effectiveTab, stationId, line, data });
             return <div style={{ color: 'var(--text-muted)' }}>{t.noData}</div>;
         }
 
-        if (currentTab === 'MTR' && isMTRData(data)) {
+        if (effectiveTab === 'MTR' && isMTRData(data)) {
             // Show offline/no-service state more gracefully than a red error card
             if (data.offline) {
                 return (
@@ -246,7 +248,7 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
             );
         }
 
-        if (currentTab === 'LRT' && Array.isArray(data)) {
+        if (effectiveTab === 'LRT' && Array.isArray(data)) {
             if (data.length === 0) return <div style={{ color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'center' }}>{t.noTrains}</div>;
             
             const selectedDest = selectedFilterIndex !== null ? destinations[selectedFilterIndex] : null;
@@ -267,7 +269,7 @@ export default function EtaDisplay({ stationId, stationName, line, onUpdateTime,
             );
         }
 
-        if (currentTab === 'BUS' && Array.isArray(data)) {
+        if (effectiveTab === 'BUS' && Array.isArray(data)) {
             if (data.length === 0) return <div style={{ color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'center' }}>{t.noBus}</div>;
 
             const normalizeStopId = (id?: string) => (String(id || '').replace(/-n(?=[A-Z0-9])/i, '-')).toUpperCase();

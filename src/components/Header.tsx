@@ -11,7 +11,7 @@ export default function Header() {
         setIsLocating(true);
         try {
             const coords = await getCurrentPosition();
-            const results = findNearestStations(coords.latitude, coords.longitude, 3);
+            const results = findNearestStations(coords.latitude, coords.longitude);
             setNearbyStations(results);
         } catch (err) {
             setLocationError(typeof err === 'string' ? err : 'Unable to get location.');

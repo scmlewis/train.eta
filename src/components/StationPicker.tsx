@@ -363,10 +363,11 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                     </div>
                 </div>
                 <EtaDisplay
-                    key={`${currentTab}-${station.id}`}
+                    key={`${station.mode || currentTab}-${station.id}`}
                     stationId={station.id}
                     stationName={resolveName(station.name)}
                     line={station.line || station.group}
+                    mode={station.mode}
                     onUpdateTime={setStationLastUpdated}
                     onRegisterRefetch={registerRefetch}
                 />
@@ -377,7 +378,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     return (
         <div role="listbox" className="accordion-list animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             {/* Nearby stations pinned section */}
-            {nearbyStations && nearbyStations.length > 0 && !searchQuery.trim() && (
+            {nearbyStations && (nearbyStations.MTR.length > 0 || nearbyStations.LRT.length > 0 || nearbyStations.BUS.length > 0) && !searchQuery.trim() && (
                 <NearbyStations stations={nearbyStations} />
             )}
             {/* FEATURE 3: Enhanced empty state with icon and helpful suggestions */}

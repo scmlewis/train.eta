@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Station, TransportMode } from '../types/eta';
+import type { NearbyStationGroups } from '../utils/geolocation';
 
 export type TabId = TransportMode | 'FAV' | 'SETTINGS';
 
@@ -12,7 +13,7 @@ interface AppState {
     returnAnchorGroupKey: string | null;
     favoriteStations: Station[];
     // Geolocation state (not persisted)
-    nearbyStations: (Station & { distanceKm: number })[] | null;
+    nearbyStations: NearbyStationGroups | null;
     isLocating: boolean;
     locationError: string | null;
     setTab: (tab: TabId) => void;
@@ -21,7 +22,7 @@ interface AppState {
     setSelectedStation: (station: Station | null) => void;
     setReturnAnchorGroupKey: (groupKey: string | null) => void;
     toggleFavorite: (station: Station) => void;
-    setNearbyStations: (stations: (Station & { distanceKm: number })[] | null) => void;
+    setNearbyStations: (stations: NearbyStationGroups | null) => void;
     setIsLocating: (locating: boolean) => void;
     setLocationError: (error: string | null) => void;
     clearNearbyStations: () => void;

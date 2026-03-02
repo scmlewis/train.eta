@@ -15,7 +15,8 @@ export type TransportMode = 'MTR' | 'LRT' | 'BUS';
 
 export interface Station {
     id: string; // e.g. "TUC" for MTR, "1" for LRT, routeName for Bus
-    name: string; // e.g. "Tung Chung", "Tuen Mun"
+    name: string; // English display name
+    nameTc?: string; // Traditional Chinese display name (populated by geolocation)
     line?: string; // e.g. "TCL", "507"
     mode: TransportMode;
     lat?: number;

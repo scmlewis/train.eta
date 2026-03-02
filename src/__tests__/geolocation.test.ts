@@ -36,25 +36,36 @@ describe('haversineDistanceKm', () => {
 });
 
 // ---------------------------------------------------------------------------
-// findNearestStations
+// findNearestStations  (returns grouped { MTR, LRT, BUS })
 // ---------------------------------------------------------------------------
 describe('findNearestStations', () => {
-    it('returns at most `limit` stations (default 3)', () => {
-        // Use coordinates near Central HK where MTR stations are dense
-        const results = findNearestStations(22.282, 114.158, 3);
-        expect(results.length).toBeLessThanOrEqual(3);
+    it('returns an object with MTR, LRT, and BUS arrays', () => {
+        const results = findNearestStations(22.282, 114.158);
+        expect(Array.isArray(results.MTR)).toBe(true);
+        expect(Array.isArray(results.LRT)).toBe(true);
+        expect(Array.isArray(results.BUS)).toBe(true);
     });
 
-    it('returns results sorted ascending by distanceKm', () => {
-        const results = findNearestStations(22.282, 114.158, 3);
-        for (let i = 1; i < results.length; i++) {
-            expect(results[i].distanceKm).toBeGreaterThanOrEqual(results[i - 1].distanceKm);
+    it('each mode group has at most limitPerMode entries (default 3)', () => {
+        const results = findNearestStations(22.282, 114.158);
+        expect(results.MTR.length).toBeLessThanOrEqual(3);
+        expect(results.LRT.length).toBeLessThanOrEqual(3);
+        expect(results.BUS.length).toBeLessThanOrEqual(3);
+    });
+
+    it('each mode group is sorted ascending by distanceKm', () => {
+        const results = findNearestStations(22.282, 114.158);
+        for (const arr of [results.MTR, results.LRT, results.BUS]) {
+            for (let i = 1; i < arr.length; i++) {
+                expect(arr[i].distanceKm).toBeGreaterThanOrEqual(arr[i - 1].distanceKm);
+            }
         }
     });
 
-    it('populates distanceKm on each result', () => {
-        const results = findNearestStations(22.282, 114.158, 3);
-        results.forEach(s => {
+    it('populates distanceKm on every entry', () => {
+        const results = findNearestStations(22.282, 114.158);
+        const all = [...results.MTR, ...results.LRT, ...results.BUS];
+        all.forEach(s => {
             expect(typeof s.distanceKm).toBe('number');
             expect(s.distanceKm).toBeGreaterThanOrEqual(0);
         });
@@ -62,34 +73,52 @@ describe('findNearestStations', () => {
 
     it('returns MTR stations near Central', () => {
         // Central station (CEN) is at 22.2820, 114.1583
-        const results = findNearestStations(22.282, 114.158, 3);
-        const modes = results.map(s => s.mode);
-        expect(modes).toContain('MTR');
+        const results = findNearestStations(22.282, 114.158);
+        expect(results.MTR.length).toBeGreaterThan(0);
+        results.MTR.forEach(s => expect(s.mode).toBe('MTR'));
     });
 
-    it('returns fewer than limit when near area with sparse coverage', () => {
-        // Middle of Victoria Harbour — very few stations nearby; results ≤ 3
-        const results = findNearestStations(22.285, 114.175, 3);
-        expect(results.length).toBeLessThanOrEqual(3);
-    });
-
-    it('respects a custom limit', () => {
+    it('respects a custom limitPerMode', () => {
         const results = findNearestStations(22.282, 114.158, 1);
-        expect(results.length).toBeLessThanOrEqual(1);
+        expect(results.MTR.length).toBeLessThanOrEqual(1);
+        expect(results.LRT.length).toBeLessThanOrEqual(1);
+        expect(results.BUS.length).toBeLessThanOrEqual(1);
     });
 
     it('includes LRT results for NT West coordinates', () => {
         // Near Tuen Mun: 22.394, 113.975 — should surface LRT stops
-        const results = findNearestStations(22.394, 113.975, 3);
-        const hasLRT = results.some(s => s.mode === 'LRT');
-        expect(hasLRT).toBe(true);
+        const results = findNearestStations(22.394, 113.975);
+        expect(results.LRT.length).toBeGreaterThan(0);
     });
 
-    it('deduplicates — same station ID does not appear twice', () => {
+    it('deduplicates MTR — same station ID does not appear twice', () => {
         const results = findNearestStations(22.282, 114.158, 10);
-        const mtrIds = results.filter(s => s.mode === 'MTR').map(s => s.id);
-        const unique = new Set(mtrIds);
-        expect(unique.size).toBe(mtrIds.length);
+        const ids = results.MTR.map(s => s.id);
+        expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it('populates nameTc on MTR results', () => {
+        const results = findNearestStations(22.282, 114.158);
+        // All MTR entries near Central must carry a TC name
+        results.MTR.forEach(s => {
+            expect(typeof s.nameTc).toBe('string');
+            expect((s.nameTc as string).length).toBeGreaterThan(0);
+        });
+    });
+
+    it('populates nameTc on LRT results near Tuen Mun', () => {
+        const results = findNearestStations(22.394, 113.975);
+        results.LRT.forEach(s => {
+            expect(typeof s.nameTc).toBe('string');
+        });
+    });
+
+    it('MTR results near Central contain CEN or adjacent station', () => {
+        const results = findNearestStations(22.282, 114.1583);
+        const ids = results.MTR.map(s => s.id);
+        // Central (CEN) or Hong Kong (HKG) should be among the closest MTR stations
+        const knownNearby = ['CEN', 'HKG', 'ADM', 'SHW'];
+        expect(ids.some(id => knownNearby.includes(id))).toBe(true);
     });
 });
 

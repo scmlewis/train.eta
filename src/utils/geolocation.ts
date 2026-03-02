@@ -1,4 +1,5 @@
 import { MTR_LINE_GROUPS, LRT_GROUPS, BUS_GROUPS } from '../constants/transportData';
+import { MTR_STATIONS } from '../constants/mtrData';
 import {
     MTR_STATION_COORDS,
     LRT_STOP_COORDS,
@@ -62,33 +63,55 @@ export function haversineDistanceKm(
 }
 
 // ---------------------------------------------------------------------------
-// Candidate station builder
+// MTR line code → bilingual name lookup  (e.g. 'ISL' → { en: 'Island Line', tc: '港島綫' })
 // ---------------------------------------------------------------------------
 
-type Candidate = Station & { distanceKm: number };
+/** Maps raw API line codes (KTL, ISL …) to bilingual display names. */
+export const MTR_LINE_NAMES: Record<string, { en: string; tc: string }> = {};
+for (const group of MTR_LINE_GROUPS) {
+    for (const station of group.stations) {
+        if (station.line && !MTR_LINE_NAMES[station.line]) {
+            MTR_LINE_NAMES[station.line] =
+                typeof group.groupName === 'string'
+                    ? { en: group.groupName, tc: group.groupName }
+                    : group.groupName;
+        }
+    }
+}
 
-/**
- * Builds a deduplicated list of stations with resolved coordinates.
- * MTR  → dedup by station ID (globally unique)
- * LRT  → dedup by English stop name (stop IDs are route-local, not globally unique)
- * BUS  → dedup by stop ID
- */
-function buildCandidates(userLat: number, userLng: number): Candidate[] {
-    const candidates: Candidate[] = [];
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export type NearbyStation = Station & { distanceKm: number };
+
+/** Grouped result shape — up to limitPerMode entries per transport mode. */
+export interface NearbyStationGroups {
+    MTR: NearbyStation[];
+    LRT: NearbyStation[];
+    BUS: NearbyStation[];
+}
+
+// ---------------------------------------------------------------------------
+// Candidate builder
+// ---------------------------------------------------------------------------
+
+function buildCandidates(userLat: number, userLng: number): NearbyStation[] {
+    const candidates: NearbyStation[] = [];
 
     // ---- MTR ----
     const seenMTR = new Set<string>();
     for (const group of MTR_LINE_GROUPS) {
-        const line = typeof group.groupName === 'string' ? group.groupName : group.groupName.en;
         for (const s of group.stations) {
             if (seenMTR.has(s.id)) continue;
             const coords = MTR_STATION_COORDS[s.id];
             if (!coords) continue;
             seenMTR.add(s.id);
-            const name = typeof s.name === 'string' ? s.name : s.name.en;
+            const names = MTR_STATIONS[s.id];
             candidates.push({
                 id: s.id,
-                name,
+                name: names?.en ?? (typeof s.name === 'string' ? s.name : s.name.en),
+                nameTc: names?.tc,
                 line: s.line,
                 mode: 'MTR',
                 lat: coords.lat,
@@ -96,11 +119,10 @@ function buildCandidates(userLat: number, userLng: number): Candidate[] {
                 distanceKm: haversineDistanceKm(userLat, userLng, coords.lat, coords.lng),
             });
         }
-        void line; // suppress unused-var lint
     }
 
     // ---- LRT ----
-    const seenLRT = new Set<string>(); // keyed by English name
+    const seenLRT = new Set<string>(); // keyed by English name (stop IDs are route-local)
     for (const group of LRT_GROUPS) {
         const routeNo = typeof group.groupName === 'string' ? group.groupName : group.groupName.en;
         for (const s of group.stations) {
@@ -113,6 +135,7 @@ function buildCandidates(userLat: number, userLng: number): Candidate[] {
             candidates.push({
                 id: s.id,
                 name: nameEn,
+                nameTc: nameObj.tc,
                 line: routeNo,
                 mode: 'LRT',
                 lat: coords.lat,
@@ -135,6 +158,7 @@ function buildCandidates(userLat: number, userLng: number): Candidate[] {
             candidates.push({
                 id: s.id,
                 name: nameObj.en,
+                nameTc: nameObj.tc,
                 line: routeNo,
                 mode: 'BUS',
                 lat: coords.lat,
@@ -152,15 +176,25 @@ function buildCandidates(userLat: number, userLng: number): Candidate[] {
 // ---------------------------------------------------------------------------
 
 /**
- * Returns up to `limit` stations nearest to the given coordinates,
- * sorted ascending by distance, with `distanceKm` populated.
+ * Returns the nearest stations grouped by transport mode (MTR / LRT / BUS).
+ * Each group is sorted ascending by distance and capped at `limitPerMode` entries.
  */
 export function findNearestStations(
     userLat: number,
     userLng: number,
-    limit = 3,
-): (Station & { distanceKm: number })[] {
-    const candidates = buildCandidates(userLat, userLng);
-    candidates.sort((a, b) => a.distanceKm - b.distanceKm);
-    return candidates.slice(0, limit);
+    limitPerMode = 3,
+): NearbyStationGroups {
+    const all = buildCandidates(userLat, userLng);
+
+    const pick = (mode: 'MTR' | 'LRT' | 'BUS') =>
+        all
+            .filter((s) => s.mode === mode)
+            .sort((a, b) => a.distanceKm - b.distanceKm)
+            .slice(0, limitPerMode);
+
+    return {
+        MTR: pick('MTR'),
+        LRT: pick('LRT'),
+        BUS: pick('BUS'),
+    };
 }
