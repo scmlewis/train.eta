@@ -26,12 +26,6 @@ export default function Header() {
         SETTINGS: isTC ? '設定' : 'Settings'
     };
 
-    const resolveName = (name: any) => {
-        if (!name) return '';
-        if (typeof name === 'string') return name;
-        return isTC ? name.tc : name.en;
-    };
-
     return (
         <header className="app-header" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -49,10 +43,14 @@ export default function Header() {
                     ) : (
                         <h1 className="logo-text">Train.ETA</h1>
                     )}
-                    <span style={{ height: '1rem', width: '1px', background: 'rgba(255,255,255,0.1)' }}></span>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                        {selectedStation ? resolveName((selectedStation as any).name) : (tabTitles[currentTab] || currentTab)}
-                    </span>
+                    {!selectedStation && (
+                        <>
+                            <span style={{ height: '1rem', width: '1px', background: 'rgba(255,255,255,0.1)' }}></span>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                {tabTitles[currentTab] || currentTab}
+                            </span>
+                        </>
+                    )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
