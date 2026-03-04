@@ -1,5 +1,6 @@
 import type { ETA } from '../types/eta';
 import { API_ENDPOINTS } from '../constants/config';
+import type { RawMTRResponse, RawLRTResponse, RawBusResponse } from '../types/api';
 
 const API_TIMEOUT = 10000;
 
@@ -42,7 +43,7 @@ const fetchWithTimeout = async (resource: string, options: RequestInit = {}) => 
 
 export type MTRResult = { up: ETA[], down: ETA[], offline?: boolean, delayed?: boolean, message?: string };
 
-export function normalizeMTR(data: any, stationCode: string, lineCode: string): MTRResult {
+export function normalizeMTR(data: RawMTRResponse | any, stationCode: string, lineCode: string): MTRResult {
     try {
         // status=0 means service is not available (outside operating hours or disruption).
         // Handle this first so provider messages like "The contents are empty!" don't get mistaken for normal empty arrivals.
@@ -56,7 +57,7 @@ export function normalizeMTR(data: any, stationCode: string, lineCode: string): 
         }
         // isdelay=Y means delay but service is still running – log it as a warning but keep showing trains.
         const delayed = data.isdelay === 'Y';
-        let stationData = data.data[`${lineCode}-${stationCode}`];
+        let stationData = data.data ? data.data[`${lineCode}-${stationCode}`] : undefined;
         // Fallback: sometimes API keys may use different ordering or station codes; try to find a matching key
         if (!stationData && data.data && typeof data.data === 'object') {
             const keys = Object.keys(data.data);
@@ -97,7 +98,7 @@ export function normalizeMTR(data: any, stationCode: string, lineCode: string): 
     }
 }
 
-export function normalizeLRT(data: any, lang: 'EN' | 'TC' = 'EN'): { platform: string, etas: ETA[] }[]  {
+export function normalizeLRT(data: RawLRTResponse | any, lang: 'EN' | 'TC' = 'EN'): { platform: string, etas: ETA[] }[]  {
     try {
         if (!data.platform_list || data.platform_list.length === 0) return [];
 
@@ -191,7 +192,7 @@ export function normalizeLRT(data: any, lang: 'EN' | 'TC' = 'EN'): { platform: s
     }
 }
 
-export function normalizeBus(data: any, lang: 'EN' | 'TC' = 'EN'): (ETA & { stopId: string })[] {
+export function normalizeBus(data: RawBusResponse | any, lang: 'EN' | 'TC' = 'EN'): (ETA & { stopId: string })[] {
     try {
         if (!data || !data.busStop) return [];
         let allBusEtas: (ETA & { stopId: string })[] = [];

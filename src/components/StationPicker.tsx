@@ -495,7 +495,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
             )}
 
             {filteredGroups.map((group: any) => (
-                <div key={resolveName(group.groupName)} className="glass-card" ref={el => { if (el) cardRefs.current[getGroupKey(group.groupName)] = el; }} style={{ padding: 0, overflow: 'hidden', marginBottom: '0.4rem', border: expandedGroup === getGroupKey(group.groupName) ? '1px solid rgba(167, 139, 250, 0.2)' : '1px solid transparent' }}>
+                <div key={getGroupKey(group.groupName)} className="glass-card" ref={el => { if (el) cardRefs.current[getGroupKey(group.groupName)] = el; }} style={{ padding: 0, overflow: 'hidden', marginBottom: '0.4rem', border: expandedGroup === getGroupKey(group.groupName) ? '1px solid rgba(167, 139, 250, 0.2)' : '1px solid transparent' }}>
                     <button
                         className="accordion-header"
                         ref={el => { if (el) groupHeaderRefs.current[getGroupKey(group.groupName)] = el; }}
@@ -587,7 +587,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                     const terminalStopId = (isCircularRoute || isCircularDir) ? null : dirStops[dirStops.length - 1]?.id;
 
                                     return (
-                                        <div key={`dir-${d}`} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.2rem 0' }}>
+                                        <div key={`${getGroupKey(group.groupName)}-dir-${d}`} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.2rem 0' }}>
                                             {dirStops.map((station: any) => {
                                                 const nameStr = typeof station.name === 'string' ? station.name : (language === 'TC' ? station.name.tc : station.name.en);
                                                 const isTerminal = terminalStopId !== null && station.id === terminalStopId;
@@ -645,7 +645,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                     const terminalStopId = (isCircularRoute || isCircularDir) ? null : dirStops[dirStops.length - 1]?.id;
 
                                     return (
-                                        <div key={`dir-${d}`} style={{ margin: 0, overflow: 'hidden', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <div key={`${getGroupKey(group.groupName)}-dir-${d}`} style={{ margin: 0, overflow: 'hidden', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                                             <button
                                                 type="button"
                                                 className="direction-header"
