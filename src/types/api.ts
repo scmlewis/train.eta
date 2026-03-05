@@ -43,8 +43,6 @@ export interface RawBusEntry {
     departureTimeText?: string;
     destEn?: string;
     destCh?: string;
-    destEn?: string;
-    destCh?: string;
     isScheduled?: string;
     [k: string]: any;
 }
