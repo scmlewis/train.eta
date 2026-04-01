@@ -9,9 +9,21 @@ import { BUS_STOP_NAMES } from '../constants/busStopNames';
 import { QUERY_CONFIG } from '../constants/config';
 import { Search } from 'lucide-react';
 
+// Type for API responses based on transport mode
+type MTRResponse = { up: ETA[], down: ETA[], offline?: boolean, delayed?: boolean, message?: string };
+type LRTResponse = { platform: string, etas: ETA[] }[];
+type BusResponse = (ETA & { stopId: string })[];
+type ETAData = MTRResponse | LRTResponse | BusResponse;
+
 // Type guards for data structures
-const isMTRData = (data: any): data is { up: ETA[], down: ETA[], offline?: boolean, delayed?: boolean, message?: string } => data && 'up' in data && 'down' in data;
-const isLRTData = (data: any): data is { platform: string, etas: ETA[] }[] => Array.isArray(data) && data.length > 0 && 'platform' in data[0];
+const isMTRData = (data: unknown): data is MTRResponse => {
+    const d = data as Record<string, unknown>;
+    return d && 'up' in d && 'down' in d;
+};
+const isLRTData = (data: unknown): data is LRTResponse => 
+    Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && 'platform' in (data[0] as object);
+const isBusData = (data: unknown): data is BusResponse => 
+    Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && 'stopId' in (data[0] as object);
 
 // Enhanced "no match" empty state shown when the active destination filter has no ETAs
 function NoMatchCard({ lang }: { lang: 'en' | 'tc' }) {
@@ -42,12 +54,15 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
     const refetchRef = useRef<(() => void) | null>(null);
     const onUpdateTimeRef = useRef(onUpdateTime);
     const onRegisterRefetchRef = useRef(onRegisterRefetch);
-    // Keep refs in sync without causing extra effects
-    onUpdateTimeRef.current = onUpdateTime;
-    onRegisterRefetchRef.current = onRegisterRefetch;
+    
+    // Keep refs in sync via effect to comply with React rendering rules
+    useEffect(() => {
+        onUpdateTimeRef.current = onUpdateTime;
+        onRegisterRefetchRef.current = onRegisterRefetch;
+    }, [onUpdateTime, onRegisterRefetch]);
 
     // Helper function to resolve bilingual names
-    const resolveName = (name: any): string => {
+    const resolveName = (name: Record<string, string> | string | undefined | null): string => {
         if (!name) return '';
         if (typeof name === 'string') return name;
         return lang === 'tc' ? (name.tc || name.en || '') : (name.en || name.tc || '');
@@ -61,7 +76,7 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
             : ['eta', effectiveTab, stationId, line, language].filter(Boolean) as string[],
     [effectiveTab, stationId, line, language]);
 
-    const { data, isLoading, isError, error, refetch, dataUpdatedAt } = useQuery<any, Error>({
+    const { data, isLoading, isError, error, refetch, dataUpdatedAt } = useQuery<ETAData, Error>({
         queryKey,
         queryFn: () => {
             if (effectiveTab === 'MTR' && line) return fetchMTR(line, stationId);
@@ -84,7 +99,8 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
 
     // Keep refetch ref up to date
     useEffect(() => {
-        refetchRef.current = () => { try { refetch(); } catch (e) { /* ignore */ } };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        refetchRef.current = () => { try { refetch(); } catch (_) { /* ignore */ } };
     }, [refetch]);
 
     // Notify parent of time updates via ref (stable, no re-registering)
@@ -97,7 +113,8 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
         const register = onRegisterRefetchRef.current;
         if (!register) return;
         const unregister = register(() => { if (refetchRef.current) refetchRef.current(); });
-        return () => { try { unregister(); } catch (e) { /* ignore */ } };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        return () => { try { unregister(); } catch (_) { /* ignore */ } };
     }, []); // empty deps - intentional, uses refs internally
 
     const busDirectionLabel = useMemo(() => {
@@ -141,7 +158,7 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
             return allDests; // already in stable order, skip final .sort()
         } else if (effectiveTab === 'LRT' && isLRTData(data)) {
             allDests = [...new Set(data.flatMap(p => p.etas).map(e => e.destination))];
-        } else if (effectiveTab === 'BUS' && Array.isArray(data)) {
+        } else if (effectiveTab === 'BUS' && isBusData(data)) {
             allDests = [...new Set(data.map(e => e.destination))];
         }
 
@@ -269,17 +286,17 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
             );
         }
 
-        if (effectiveTab === 'BUS' && Array.isArray(data)) {
+        if (effectiveTab === 'BUS' && isBusData(data)) {
             if (data.length === 0) return <div style={{ color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'center' }}>{t.noBus}</div>;
 
             const normalizeStopId = (id?: string) => (String(id || '').replace(/-n(?=[A-Z0-9])/i, '-')).toUpperCase();
 
             const filteredBusEtas = data
-                .filter((eta: any) => normalizeStopId(eta.stopId) === normalizeStopId(stationId))
+                .filter((eta) => normalizeStopId(eta.stopId) === normalizeStopId(stationId))
                 .slice(0, 5);
 
             if (filteredBusEtas.length === 0) return <div style={{ color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'center' }}>{t.noArrivalsAtStop}</div>;
-            const liveDestinations = [...new Set(filteredBusEtas.map((eta: any) => eta.destination).filter(Boolean))];
+            const liveDestinations = [...new Set(filteredBusEtas.map((eta) => eta.destination).filter(Boolean))];
             const routeCode = (extractBusRoute(stationId, line) || '').trim().toUpperCase();
             const meaningfulLiveDestinations = liveDestinations.filter(dest => String(dest).trim().toUpperCase() !== routeCode);
             const liveDestinationLabel = meaningfulLiveDestinations.length > 0 ? meaningfulLiveDestinations.join(' / ') : undefined;

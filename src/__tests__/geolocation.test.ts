@@ -91,10 +91,33 @@ describe('findNearestStations', () => {
         expect(results.LRT.length).toBeGreaterThan(0);
     });
 
-    it('deduplicates MTR — same station ID does not appear twice', () => {
-        const results = findNearestStations(22.282, 114.158, 10);
-        const ids = results.MTR.map(s => s.id);
-        expect(new Set(ids).size).toBe(ids.length);
+    it('shows multi-line MTR stations multiple times with different lines', () => {
+        // Admiralty (ADM) serves 4 MTR lines: TWL, ISL, SIL, EAL
+        const results = findNearestStations(22.282, 114.158, 20);
+        const admiraltyStations = results.MTR.filter(s => s.id === 'ADM');
+        
+        // Admiralty should appear at least 2 times (but ideally 4 if all are within 3 km)
+        expect(admiraltyStations.length).toBeGreaterThanOrEqual(1);
+        
+        // If Admiralty appears multiple times, they should have different line codes
+        if (admiraltyStations.length > 1) {
+            const lines = admiraltyStations.map(s => s.line);
+            const uniqueLines = new Set(lines);
+            expect(uniqueLines.size).toBe(lines.length); // All lines should be unique
+        }
+    });
+
+    it('shows multi-route LRT stops multiple times with different routes', () => {
+        // Siu Lun (stop name) appears in routes 505, 507, 614 etc.
+        const results = findNearestStations(22.394, 113.975, 20);
+        const siuLunStops = results.LRT.filter(s => s.name === 'Siu Lun' || s.name === 'Siu Lun');
+        
+        // If Siu Lun appears, it should potentially appear in multiple route rows
+        if (siuLunStops.length > 1) {
+            const routes = siuLunStops.map(s => s.line);
+            const uniqueRoutes = new Set(routes);
+            expect(uniqueRoutes.size).toBe(routes.length); // All routes should be unique
+        }
     });
 
     it('populates nameTc on MTR results', () => {

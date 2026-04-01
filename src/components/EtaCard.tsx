@@ -17,6 +17,11 @@ export default function EtaCard({ eta, label, trackColor = 'var(--primary-color)
         eta.ttiMinutes === 0 ||
         eta.tti === '0 min' || eta.tti === '0 mins' ||
         /departing|departed|即將|已離開/i.test(eta.tti ?? '');
+    const isArriving =
+        !isDeparting && (
+            eta.ttiMinutes === 1 ||
+            eta.tti === '1 min' || eta.tti === '1 mins'
+        );
 
     const toHHMM = (timeStr?: string): string | undefined => {
         if (!timeStr || /min|分/.test(timeStr)) return undefined;
@@ -64,6 +69,11 @@ export default function EtaCard({ eta, label, trackColor = 'var(--primary-color)
                     {isDeparting ? (
                         <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.1rem' }}>
                             <span>{isTC ? '即將開出/\n已離開' : 'Departing\n/ Departed'}</span>
+                            {displayTime && <span style={{ fontSize: '0.75rem', fontWeight: 400, opacity: 0.75 }}>({displayTime})</span>}
+                        </span>
+                    ) : isArriving ? (
+                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.1rem' }}>
+                            <span>{isTC ? '即將抵達' : 'Arriving'}</span>
                             {displayTime && <span style={{ fontSize: '0.75rem', fontWeight: 400, opacity: 0.75 }}>({displayTime})</span>}
                         </span>
                     ) : hasTtiMinutes ? (

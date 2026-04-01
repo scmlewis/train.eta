@@ -4,9 +4,9 @@ import { useAppStore } from '../store/useAppStore';
 // Provide a noop localStorage for the persist middleware in Node
 beforeEach(() => {
   (global as any).localStorage = {
-    getItem: (_: string) => null,
-    setItem: (_: string, __: string) => {},
-    removeItem: (_: string) => {},
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {},
     clear: () => {}
   };
   // reset store to defaults by directly setting state

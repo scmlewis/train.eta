@@ -100,13 +100,10 @@ function buildCandidates(userLat: number, userLng: number): NearbyStation[] {
     const candidates: NearbyStation[] = [];
 
     // ---- MTR ----
-    const seenMTR = new Set<string>();
     for (const group of MTR_LINE_GROUPS) {
         for (const s of group.stations) {
-            if (seenMTR.has(s.id)) continue;
             const coords = MTR_STATION_COORDS[s.id];
             if (!coords) continue;
-            seenMTR.add(s.id);
             const names = MTR_STATIONS[s.id];
             candidates.push({
                 id: s.id,
@@ -122,16 +119,13 @@ function buildCandidates(userLat: number, userLng: number): NearbyStation[] {
     }
 
     // ---- LRT ----
-    const seenLRT = new Set<string>(); // keyed by English name (stop IDs are route-local)
     for (const group of LRT_GROUPS) {
         const routeNo = typeof group.groupName === 'string' ? group.groupName : group.groupName.en;
         for (const s of group.stations) {
             const nameObj = typeof s.name === 'string' ? { en: s.name, tc: s.name } : s.name;
             const nameEn = nameObj.en;
-            if (seenLRT.has(nameEn)) continue;
             const coords = LRT_STOP_COORDS[nameEn];
             if (!coords) continue;
-            seenLRT.add(nameEn);
             candidates.push({
                 id: s.id,
                 name: nameEn,
@@ -146,14 +140,11 @@ function buildCandidates(userLat: number, userLng: number): NearbyStation[] {
     }
 
     // ---- BUS ----
-    const seenBus = new Set<string>();
     for (const group of BUS_GROUPS) {
         const routeNo = typeof group.groupName === 'string' ? group.groupName : group.groupName.en;
         for (const s of group.stations) {
-            if (seenBus.has(s.id)) continue;
             const coords = BUS_STOP_COORDS[s.id];
             if (!coords) continue;
-            seenBus.add(s.id);
             const nameObj = typeof s.name === 'string' ? { en: s.name, tc: s.name } : s.name;
             candidates.push({
                 id: s.id,
