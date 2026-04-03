@@ -90,7 +90,15 @@ function buildBusDirectionGroups(baseGroups: TransportGroup[]): BusDisplayGroup[
                 mergedStopsRaw.push(...byDir[secondaryDir]);
             }
 
-            const mergedStops = collapseConsecutiveSameName(mergedStopsRaw);
+            let mergedStops = collapseConsecutiveSameName(mergedStopsRaw);
+            
+            // For circular routes, remove all trailing duplicates of the first station before closing the loop
+            if (mergedStops.length > 1) {
+                const firstName = getStopName(mergedStops[0]);
+                while (mergedStops.length > 1 && getStopName(mergedStops[mergedStops.length - 1]) === firstName) {
+                    mergedStops.pop();
+                }
+            }
             
             // Close the loop by adding the first stop again (only if last stop is different)
             if (mergedStops.length > 0) {
@@ -421,6 +429,14 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                     }
 
                     const mergedStops = collapseConsecutiveSameName(mergedStopsRaw);
+                    
+                    // For circular routes, remove all trailing duplicates of the first station before closing the loop
+                    if (mergedStops.length > 1) {
+                        const firstName = getStopName(mergedStops[0]);
+                        while (mergedStops.length > 1 && getStopName(mergedStops[mergedStops.length - 1]) === firstName) {
+                            mergedStops.pop();
+                        }
+                    }
                     
                     // Close the loop by adding the first stop again (only if last stop is different)
                     if (mergedStops.length > 0) {
