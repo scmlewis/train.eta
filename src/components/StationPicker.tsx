@@ -92,22 +92,23 @@ function buildBusDirectionGroups(baseGroups: TransportGroup[]): BusDisplayGroup[
 
             let mergedStops = collapseConsecutiveSameName(mergedStopsRaw);
             
-            // For circular routes, remove all trailing duplicates of the first station before closing the loop
-            if (mergedStops.length > 1) {
-                const firstName = getStopName(mergedStops[0]);
-                while (mergedStops.length > 1 && getStopName(mergedStops[mergedStops.length - 1]) === firstName) {
-                    mergedStops.pop();
+            // Build unique circular route: collect stops with unique names,  close the loop at end
+            const uniqueStops: StationOption[] = [];
+            const seenNames = new Set<string>();
+            for (const stop of mergedStops) {
+                const name = getStopName(stop);
+                if (!seenNames.has(name)) {
+                    uniqueStops.push(stop);
+                    seenNames.add(name);
                 }
             }
             
-            // Close the loop by adding the first stop again (only if last stop is different)
-            if (mergedStops.length > 0) {
-                const firstName = getStopName(mergedStops[0]);
-                const lastName = getStopName(mergedStops[mergedStops.length - 1]);
-                if (firstName !== lastName) {
-                    mergedStops.push(mergedStops[0]);
-                }
+            // Close the loop by adding the first stop again (for circular visualization)
+            if (uniqueStops.length > 0) {
+                uniqueStops.push(uniqueStops[0]);
             }
+            
+            mergedStops = uniqueStops;
             
             output.push({
                 ...group,
@@ -430,26 +431,26 @@ export default function StationList({ currentTab }: { currentTab: string }) {
 
                     const mergedStops = collapseConsecutiveSameName(mergedStopsRaw);
                     
-                    // For circular routes, remove all trailing duplicates of the first station before closing the loop
-                    if (mergedStops.length > 1) {
-                        const firstName = getStopName(mergedStops[0]);
-                        while (mergedStops.length > 1 && getStopName(mergedStops[mergedStops.length - 1]) === firstName) {
-                            mergedStops.pop();
+                    // Build unique circular route: collect stops with unique names, close the loop at end
+                    const uniqueStops: StationOption[] = [];
+                    const seenNames = new Set<string>();
+                    for (const stop of mergedStops) {
+                        const name = getStopName(stop);
+                        if (!seenNames.has(name)) {
+                            uniqueStops.push(stop);
+                            seenNames.add(name);
                         }
                     }
                     
-                    // Close the loop by adding the first stop again (only if last stop is different)
-                    if (mergedStops.length > 0) {
-                        const firstName = getStopName(mergedStops[0]);
-                        const lastName = getStopName(mergedStops[mergedStops.length - 1]);
-                        if (firstName !== lastName) {
-                            mergedStops.push(mergedStops[0]);
-                        }
+                    // Close the loop by adding the first stop again (for circular visualization)
+                    let finalMergedStops = uniqueStops;
+                    if (uniqueStops.length > 0) {
+                        finalMergedStops = [...uniqueStops, uniqueStops[0]];
                     }
                     
                     // Store as single flat list without direction grouping
                     Object.keys(allByDir).forEach(k => delete allByDir[k]);
-                    allByDir['merged'] = mergedStops;
+                    allByDir['merged'] = finalMergedStops;
                     Object.keys(dirInfo).forEach(k => delete dirInfo[k]);
                     dirInfo['merged'] = {
                         dir: 'merged',
