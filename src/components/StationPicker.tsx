@@ -92,9 +92,13 @@ function buildBusDirectionGroups(baseGroups: TransportGroup[]): BusDisplayGroup[
 
             const mergedStops = collapseConsecutiveSameName(mergedStopsRaw);
             
-            // Close the loop by adding the first stop again (if there are stops)
+            // Close the loop by adding the first stop again (only if last stop is different)
             if (mergedStops.length > 0) {
-                mergedStops.push(mergedStops[0]);
+                const firstName = getStopName(mergedStops[0]);
+                const lastName = getStopName(mergedStops[mergedStops.length - 1]);
+                if (firstName !== lastName) {
+                    mergedStops.push(mergedStops[0]);
+                }
             }
             
             output.push({
@@ -418,9 +422,13 @@ export default function StationList({ currentTab }: { currentTab: string }) {
 
                     const mergedStops = collapseConsecutiveSameName(mergedStopsRaw);
                     
-                    // Close the loop by adding the first stop again
+                    // Close the loop by adding the first stop again (only if last stop is different)
                     if (mergedStops.length > 0) {
-                        mergedStops.push(mergedStops[0]);
+                        const firstName = getStopName(mergedStops[0]);
+                        const lastName = getStopName(mergedStops[mergedStops.length - 1]);
+                        if (firstName !== lastName) {
+                            mergedStops.push(mergedStops[0]);
+                        }
                     }
                     
                     // Store as single flat list without direction grouping
