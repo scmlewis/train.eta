@@ -721,7 +721,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                         );
                                     }
                                     
-                                    if (Object.keys(dyn.byDir).length === 0) {
+                                    if (Object.keys(dyn.byDir ?? {}).length === 0) {
                                         return (
                                             <div style={{ padding: '1rem 2.45rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                                                 {language === 'TC' ? '暫無停靠站資訊' : 'No stop data available'}
@@ -751,24 +751,24 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                     });
                                 }
 
-                                const dirKeys = Object.keys(dyn.byDir);
+                                const dirKeys = Object.keys(dyn.byDir ?? {});
                                 if (currentTab === 'BUS' && dirKeys.length === 1) {
                                     const d = dirKeys[0];
-                                    const dirStops = dyn.byDir[d];
+                                    const dirStops = dyn.byDir![d];
                                     const groupDesc = group.desc;
                                     const descText = typeof groupDesc === 'string'
                                         ? groupDesc
                                         : `${groupDesc?.en || ''} ${groupDesc?.tc || ''}`;
                                     const isCircularRoute = !!(group as any).isCircularRoute || CIRCULAR_BUS_ROUTES.has(routeKey) || /circular|循環/i.test(descText);
 
-                                    const firstName = (() => { const n = dirStops[0]?.name as any; return typeof n === 'string' ? n : n?.en; })();
-                                    const lastName = (() => { const n = dirStops[dirStops.length - 1]?.name as any; return typeof n === 'string' ? n : n?.en; })();
+                                    const firstName = (() => { const n = dirStops?.[0]?.name as any; return typeof n === 'string' ? n : n?.en; })();
+                                    const lastName = (() => { const n = dirStops?.[dirStops.length - 1]?.name as any; return typeof n === 'string' ? n : n?.en; })();
                                     const isCircularDir = firstName === lastName;
                                     const terminalStopId = (isCircularRoute || isCircularDir) ? null : dirStops[dirStops.length - 1]?.id;
 
                                     return (
                                         <div key={`${getGroupKey(group.groupName)}-dir-${d}`} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.2rem 0' }}>
-                                            {dirStops.map((station: any) => {
+                                            {dirStops?.map((station: any) => {
                                                 const nameStr = typeof station.name === 'string' ? station.name : (language === 'TC' ? station.name.tc : station.name.en);
                                                 const isTerminal = terminalStopId !== null && station.id === terminalStopId;
                                                 if (isTerminal) {
@@ -807,7 +807,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                     );
                                 }
 
-                                return Object.keys(dyn.byDir).map((d) => {
+                                return Object.keys(dyn.byDir ?? {}).map((d) => {
                                     const dirInfo = dyn.directionInfo?.[d];
                                     const endpointLabel = language === 'TC' ? (dirInfo?.endpointTc || `Direction ${d}`) : (dirInfo?.endpointEn || `Direction ${d}`);
                                     const isOpen = searchQuery.trim() ? true : (openDirections[key]?.has(d) || false);
@@ -818,9 +818,9 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                         : `${groupDesc?.en || ''} ${groupDesc?.tc || ''}`;
                                     const isCircularRoute = CIRCULAR_BUS_ROUTES.has(key) || /circular|循環/i.test(descText);
 
-                                    const dirStops = dyn.byDir[d];
-                                    const firstName = (() => { const n = dirStops[0]?.name as any; return typeof n === 'string' ? n : n?.en; })();
-                                    const lastName  = (() => { const n = dirStops[dirStops.length - 1]?.name as any; return typeof n === 'string' ? n : n?.en; })();
+                                    const dirStops = dyn.byDir![d];
+                                    const firstName = (() => { const n = dirStops?.[0]?.name as any; return typeof n === 'string' ? n : n?.en; })();
+                                    const lastName  = (() => { const n = dirStops?.[dirStops.length - 1]?.name as any; return typeof n === 'string' ? n : n?.en; })();
                                     const isCircularDir = firstName === lastName;
                                     const terminalStopId = (isCircularRoute || isCircularDir) ? null : dirStops[dirStops.length - 1]?.id;
 
@@ -843,7 +843,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                             </button>
                                             {isOpen && (
                                                 <div id={`stops-${key}-${d}`} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.2rem 0' }}>
-                                                    {dirStops.map((station: any) => {
+                                                    {dirStops?.map((station: any) => {
                                                         const nameStr = typeof station.name === 'string' ? station.name : (language === 'TC' ? station.name.tc : station.name.en);
                                                         const isTerminal = terminalStopId !== null && station.id === terminalStopId;
                                                         if (isTerminal) {
