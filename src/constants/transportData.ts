@@ -644,7 +644,10 @@ export const BUS_GROUPS: TransportGroup[] = [
         desc: { en: 'Tuen Mun Station ↺', tc: '屯門站 ↺' },
         color: 'var(--bus-color)',
         stations: [
-            { id: 'K53S-U010', name: { en: 'Tuen Mun Station', tc: '屯門站' } }
+            { id: 'K53S-U010', name: { en: 'Tuen Mun Station', tc: '屯門站' } },
+            { id: 'K53S-U020', name: { en: 'Tin Hau Road', tc: '天后路' } },
+            { id: 'K53S-U030', name: { en: 'Yip Wong Estate', tc: '業旺邨' } },
+            { id: 'K53S-U040', name: { en: 'Tuen Mun Station', tc: '屯門站' } }
         ]
     },
     {

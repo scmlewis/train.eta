@@ -272,6 +272,9 @@ export const BUS_STOP_COORDS: Record<string, { lat: number; lng: number }> = {
     'K52P-D250': { lat: 22.3949, lng: 113.9758 }, // Tuen Mun Station
     // Route K53S
     'K53S-U010': { lat: 22.3949, lng: 113.9758 }, // Tuen Mun Station
+    'K53S-U020': { lat: 22.3920, lng: 113.9780 }, // Tin Hau Road
+    'K53S-U030': { lat: 22.3880, lng: 113.9750 }, // Yip Wong Estate
+    'K53S-U040': { lat: 22.3949, lng: 113.9758 }, // Tuen Mun Station
     // Route K54A
     'K54A-D010': { lat: 22.4080, lng: 113.9908 }, // MTR Siu Hong Station (North)
     // Route K65A
