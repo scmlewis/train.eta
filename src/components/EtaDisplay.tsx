@@ -21,9 +21,15 @@ const isMTRData = (data: unknown): data is MTRResponse => {
     return d && 'up' in d && 'down' in d;
 };
 const isLRTData = (data: unknown): data is LRTResponse => 
-    Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && 'platform' in (data[0] as object);
+    Array.isArray(data) && (
+        // Treat empty arrays as valid LRT responses (no scheduled trains)
+        data.length === 0 || (data.length > 0 && typeof data[0] === 'object' && 'platform' in (data[0] as object))
+    );
 const isBusData = (data: unknown): data is BusResponse => 
-    Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && 'stopId' in (data[0] as object);
+    Array.isArray(data) && (
+        // Treat empty arrays as valid BUS responses (no schedule available)
+        data.length === 0 || (typeof data[0] === 'object' && 'stopId' in (data[0] as object))
+    );
 
 // Enhanced "no match" empty state shown when the active destination filter has no ETAs
 function NoMatchCard({ lang }: { lang: 'en' | 'tc' }) {

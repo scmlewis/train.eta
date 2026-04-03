@@ -9,7 +9,9 @@ import NearbyStations from './NearbyStations';
 import { fetchRouteStops } from '../services/busStops';
 import { scrollToElement, scrollToTop, setHeaderHeightVar } from '../utils/scroll';
 
-const CIRCULAR_BUS_ROUTES = new Set(['K53', 'K54', 'K68', 'K74', 'K75P', 'K53S']);
+// Routes verified as circular from MTR HK website
+// For circular routes, all stops from all directions are merged and shown together
+const CIRCULAR_BUS_ROUTES = new Set(['K53', 'K54', 'K68', 'K74', 'K75P', 'K53S', 'K75S', 'K75A', 'K76', '506']);
 
 type BusDisplayGroup = TransportGroup & {
     routeCode?: string;
@@ -56,15 +58,53 @@ function buildBusDirectionGroups(baseGroups: TransportGroup[]): BusDisplayGroup[
         }
 
         if (isCircularRoute) {
-            const preferredDir = byDir.D ? 'D' : dirs[0];
+            // For circular routes, show complete cycle with U direction first when available.
+            const primaryDir = Object.keys(byDir).includes('U') ? 'U' : (Object.keys(byDir).includes('D') ? 'D' : Object.keys(byDir)[0]);
+            const secondaryDir = Object.keys(byDir).find(d => d !== primaryDir) || primaryDir;
+            
+            const mergedStopsRaw: StationOption[] = [];
+
+            const getStopName = (stop: StationOption): string => {
+                if (typeof stop.name === 'string') return stop.name;
+                return stop.name.tc || stop.name.en || '';
+            };
+
+            const collapseConsecutiveSameName = (stops: StationOption[]): StationOption[] => {
+                const result: StationOption[] = [];
+                for (const stop of stops) {
+                    const prev = result[result.length - 1];
+                    if (!prev || getStopName(prev) !== getStopName(stop)) {
+                        result.push(stop);
+                    }
+                }
+                return result;
+            };
+            
+            // Add all stops from primary direction
+            if (byDir[primaryDir]) {
+                mergedStopsRaw.push(...byDir[primaryDir]);
+            }
+            
+            // Add all stops from secondary direction (no deduplication to show full cycle)
+            if (byDir[secondaryDir] && secondaryDir !== primaryDir) {
+                mergedStopsRaw.push(...byDir[secondaryDir]);
+            }
+
+            const mergedStops = collapseConsecutiveSameName(mergedStopsRaw);
+            
+            // Close the loop by adding the first stop again (if there are stops)
+            if (mergedStops.length > 0) {
+                mergedStops.push(mergedStops[0]);
+            }
+            
             output.push({
                 ...group,
                 routeCode,
-                directionCode: preferredDir,
+                directionCode: undefined,
                 isCircularRoute: true,
                 groupName: { en: `${routeCode} · Circular Route`, tc: `${routeCode} · 循環線` },
                 desc: undefined,
-                stations: byDir[preferredDir]
+                stations: mergedStops
             });
             continue;
         }
@@ -95,7 +135,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
     const [stationLastUpdated, setStationLastUpdated] = useState<string | null>(null);
     const refetchersRef = useRef<Array<() => void>>([]);
-    const [dynamicStops, setDynamicStops] = useState<Record<string, { byDir: Record<string, StationOption[]>, directionInfo: Record<string, any> }>>({});
+    const [dynamicStops, setDynamicStops] = useState<Record<string, { byDir?: Record<string, StationOption[]>, directionInfo?: Record<string, any>, stations?: StationOption[] }>>({});
     const [openDirections, setOpenDirections] = useState<Record<string, Set<string>>>({});
     const groupHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
     const directionHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -195,6 +235,9 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         const routeKey = grp.routeCode || (typeof grp.groupName === 'string' ? grp.groupName : (grp.groupName.en || grp.groupName.tc || resolveName(grp.groupName)));
         const directionCode = grp.directionCode as string | undefined;
         const isCircularRouteFromGroup = !!grp.isCircularRoute;
+        const groupDesc = grp.desc;
+        const descText = typeof groupDesc === 'string' ? groupDesc : `${groupDesc?.en || ''} ${groupDesc?.tc || ''}`;
+        const isCircularRoute = isCircularRouteFromGroup || CIRCULAR_BUS_ROUTES.has(routeKey) || /circular|循環/i.test(descText);
         const storageKey = `${routeKey}:${directionCode || 'ALL'}`;
         if (dynamicStops[storageKey]) return;
 
@@ -216,14 +259,50 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                 stops.sort((a, b) => String(a.id).localeCompare(String(b.id)))
             );
 
-            for (const [dir, stops] of Object.entries(allByDir)) {
-                const lastStop = stops[stops.length - 1];
-                const name = lastStop?.name as any;
-                dirInfo[dir] = {
-                    dir,
-                    endpointEn: typeof name === 'string' ? name : (name?.en ?? `Direction ${dir}`),
-                    endpointTc: typeof name === 'string' ? name : (name?.tc ?? `方向 ${dir}`),
+            // For circular routes, merge all stops preserving route sequence
+            if (isCircularRoute && !directionCode) {
+                // Use U direction first for circular readability, then the other direction, then close loop.
+                const primaryDir = allByDir.U ? 'U' : (allByDir.D ? 'D' : (Object.keys(allByDir)[0] || 'D'));
+                const secondaryDir = Object.keys(allByDir).find(d => d !== primaryDir) || primaryDir;
+
+                const mergedRaw: StationOption[] = [];
+                if (allByDir[primaryDir]) mergedRaw.push(...allByDir[primaryDir]);
+                if (secondaryDir !== primaryDir && allByDir[secondaryDir]) mergedRaw.push(...allByDir[secondaryDir]);
+
+                const getStopName = (stop: StationOption): string => {
+                    if (typeof stop.name === 'string') return stop.name;
+                    return stop.name.tc || stop.name.en || '';
                 };
+
+                const mergedStops: StationOption[] = [];
+                for (const stop of mergedRaw) {
+                    const prev = mergedStops[mergedStops.length - 1];
+                    if (!prev || getStopName(prev) !== getStopName(stop)) {
+                        mergedStops.push(stop);
+                    }
+                }
+
+                if (mergedStops.length > 0) {
+                    mergedStops.push(mergedStops[0]);
+                }
+                
+                Object.keys(allByDir).forEach(k => delete allByDir[k]);
+                allByDir['merged'] = mergedStops;
+                dirInfo['merged'] = {
+                    dir: 'merged',
+                    endpointEn: '',
+                    endpointTc: ''
+                };
+            } else {
+                for (const [dir, stops] of Object.entries(allByDir)) {
+                    const lastStop = stops[stops.length - 1];
+                    const name = lastStop?.name as any;
+                    dirInfo[dir] = {
+                        dir,
+                        endpointEn: typeof name === 'string' ? name : (name?.en ?? `Direction ${dir}`),
+                        endpointTc: typeof name === 'string' ? name : (name?.tc ?? `方向 ${dir}`),
+                    };
+                }
             }
 
             if (directionCode && allByDir[directionCode]) {
@@ -239,7 +318,14 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         };
 
         const staticStops = buildStaticStops();
-        setDynamicStops(prev => ({ ...prev, [storageKey]: staticStops }));
+        
+        // For circular routes, the merged stops are already in byDir['merged']
+        let staticStations: StationOption[] | undefined = undefined;
+        if (isCircularRoute && staticStops.byDir['merged']) {
+            staticStations = staticStops.byDir['merged'];
+        }
+        
+        setDynamicStops(prev => ({ ...prev, [storageKey]: { byDir: staticStops.byDir, directionInfo: staticStops.directionInfo, stations: staticStations } }));
 
         let cancelled = false;
         (async () => {
@@ -276,11 +362,76 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                     ? groupDesc
                     : `${groupDesc?.en || ''} ${groupDesc?.tc || ''}`;
                 const isCircularRoute = isCircularRouteFromGroup || CIRCULAR_BUS_ROUTES.has(routeKey) || /circular|循環/i.test(descText);
-                if (isCircularRoute && Object.keys(allByDir).length > 1) {
-                    const preferredDir = allByDir.D ? 'D' : Object.keys(allByDir).sort()[0];
-                    const preferredStops = allByDir[preferredDir] || [];
+                
+                // For circular routes, merge all directions preserving route sequence
+                if (isCircularRoute && !directionCode) {
+                    // Determine primary direction - prefer U first for circular route readability.
+                    const allLiveByDir = live.byDir || {};
+                    const allStaticByDir = staticStops.byDir || {};
+                    const allDirs = new Set([...Object.keys(allLiveByDir), ...Object.keys(allStaticByDir)]);
+                    const primaryDir = allDirs.has('U') ? 'U' : (allDirs.has('D') ? 'D' : (Array.from(allDirs)[0] || 'D'));
+                    const secondaryDir = Array.from(allDirs).find(d => d !== primaryDir) || primaryDir;
+                    
+                    // Build merged list: show complete cycle (primary + secondary + loop back to start)
+                    // For circular routes, no deduplication between directions - show the full path
+                    const mergedStopsRaw: StationOption[] = [];
+
+                    const getStopName = (stop: StationOption): string => {
+                        if (typeof stop.name === 'string') return stop.name;
+                        return stop.name.tc || stop.name.en || '';
+                    };
+
+                    const collapseConsecutiveSameName = (stops: StationOption[]): StationOption[] => {
+                        const result: StationOption[] = [];
+                        for (const stop of stops) {
+                            const prev = result[result.length - 1];
+                            if (!prev || getStopName(prev) !== getStopName(stop)) {
+                                result.push(stop);
+                            }
+                        }
+                        return result;
+                    };
+                    
+                    // Add all stops from primary direction (live takes precedence over static)
+                    const primaryLivePayload = allLiveByDir[primaryDir];
+                    if (primaryLivePayload?.stops) {
+                        for (const s of primaryLivePayload.stops) {
+                            const name = BUS_STOP_NAMES[s.id] || { en: s.id, tc: s.id };
+                            mergedStopsRaw.push({ id: s.id, name } as StationOption);
+                        }
+                    } else if (staticStops.byDir[primaryDir]) {
+                        mergedStopsRaw.push(...staticStops.byDir[primaryDir]);
+                    }
+                    
+                    // Add all stops from secondary direction (no deduplication to show full cycle)
+                    const secondaryLivePayload = allLiveByDir[secondaryDir];
+                    if (secondaryDir !== primaryDir) {
+                        if (secondaryLivePayload?.stops) {
+                            for (const s of secondaryLivePayload.stops) {
+                                const name = BUS_STOP_NAMES[s.id] || { en: s.id, tc: s.id };
+                                mergedStopsRaw.push({ id: s.id, name } as StationOption);
+                            }
+                        } else if (staticStops.byDir[secondaryDir]) {
+                            mergedStopsRaw.push(...staticStops.byDir[secondaryDir]);
+                        }
+                    }
+
+                    const mergedStops = collapseConsecutiveSameName(mergedStopsRaw);
+                    
+                    // Close the loop by adding the first stop again
+                    if (mergedStops.length > 0) {
+                        mergedStops.push(mergedStops[0]);
+                    }
+                    
+                    // Store as single flat list without direction grouping
                     Object.keys(allByDir).forEach(k => delete allByDir[k]);
-                    allByDir[preferredDir] = preferredStops;
+                    allByDir['merged'] = mergedStops;
+                    Object.keys(dirInfo).forEach(k => delete dirInfo[k]);
+                    dirInfo['merged'] = {
+                        dir: 'merged',
+                        endpointEn: '',
+                        endpointTc: ''
+                    };
                 }
 
                 if (directionCode && allByDir[directionCode]) {
@@ -299,7 +450,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                     };
                 }
 
-                setDynamicStops(prev => ({ ...prev, [storageKey]: { byDir: allByDir, directionInfo: dirInfo } }));
+                setDynamicStops(prev => ({ ...prev, [storageKey]: { byDir: allByDir, directionInfo: dirInfo, stations: isCircularRoute && allByDir['merged'] ? allByDir['merged'] : undefined } }));
             } catch {
                 // keep static stops already shown
             }
@@ -541,6 +692,35 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                             </div>
                                         );
                                     }
+                                    
+                                    // For circular routes with merged flat list, render directly
+                                    if (dyn.stations && dyn.stations.length > 0) {
+                                        return (
+                                            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.2rem 0' }}>
+                                                {dyn.stations.map((station: any) => {
+                                                    const nameStr = typeof station.name === 'string' ? station.name : (language === 'TC' ? station.name.tc : station.name.en);
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            role="option"
+                                                            aria-label={nameStr}
+                                                            key={station.id}
+                                                            className="station-row"
+                                                            onClick={() => {
+                                                                setReturnAnchorGroupKey(getGroupKey(group.groupName));
+                                                                setSelectedStation({ ...station, mode: currentTab } as any);
+                                                            }}
+                                                            style={{ width: '100%', padding: '0.6rem 1.15rem 0.6rem 2.45rem', minHeight: '40px', display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left', transition: 'background 0.2s', border: 'none', background: 'transparent', color: 'white', cursor: 'pointer' }}
+                                                        >
+                                                            <div className="line-indicator" style={{ width: '5px', height: '5px', borderRadius: '50%', border: `1.5px solid ${group.color}` }}></div>
+                                                            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{nameStr}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    }
+                                    
                                     if (Object.keys(dyn.byDir).length === 0) {
                                         return (
                                             <div style={{ padding: '1rem 2.45rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
