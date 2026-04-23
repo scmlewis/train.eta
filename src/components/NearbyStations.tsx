@@ -1,4 +1,4 @@
-import { X, MapPin, Train, TramFront, Bus } from 'lucide-react';
+import { MapPin, Train, TramFront, Bus } from 'lucide-react';
 import type { NearbyStation, NearbyStationGroups } from '../utils/geolocation';
 import { MTR_LINE_NAMES } from '../utils/geolocation';
 import { useAppStore } from '../store/useAppStore';
@@ -152,41 +152,17 @@ export default function NearbyStations({ stations }: Props) {
             <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
+                gap: '0.4rem',
                 padding: '0.6rem 0.9rem 0.5rem',
                 borderBottom: '1px solid rgba(255,255,255,0.06)',
+                color: 'var(--text-muted)',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
             }}>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    color: 'var(--text-muted)',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    letterSpacing: '0.03em',
-                    textTransform: 'uppercase',
-                }}>
-                    <MapPin size={13} />
-                    <span>{isTC ? '附近車站' : 'Nearby Stations'}</span>
-                </div>
-                <button
-                    type="button"
-                    aria-label={isTC ? '關閉附近車站' : 'Dismiss nearby stations'}
-                    onClick={clearNearbyStations}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--text-muted)',
-                        padding: '0.2rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        borderRadius: '6px',
-                        lineHeight: 1,
-                    }}
-                >
-                    <X size={15} />
-                </button>
+                <MapPin size={13} />
+                <span>{isTC ? '附近車站' : 'Nearby Stations'}</span>
             </div>
 
             {/* One section per mode */}

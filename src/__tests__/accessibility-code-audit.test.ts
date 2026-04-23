@@ -224,11 +224,11 @@ describe('Accessibility Code Audit', () => {
     // Test 13: Geolocation Permissions
     describe('User Permission Handling', () => {
         it('Geolocation requests are user-initiated', async () => {
-            const headerModule = await import('../components/Header');
-            const headerSource = headerModule.default.toString();
+            const floatingGeoModule = await import('../components/FloatingGeoButton');
+            const floatingGeoSource = floatingGeoModule.default.toString();
             
             // Should have geolocation-based location button
-            expect(headerSource).toContain('getCurrentPosition');
+            expect(floatingGeoSource).toContain('getCurrentPosition');
         });
     });
 

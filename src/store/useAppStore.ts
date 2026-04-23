@@ -16,6 +16,7 @@ interface AppState {
     nearbyStations: NearbyStationGroups | null;
     isLocating: boolean;
     locationError: string | null;
+    isBottomSheetOpen: boolean;
     setTab: (tab: TabId) => void;
     setLanguage: (lang: 'EN' | 'TC') => void;
     setSearchQuery: (query: string) => void;
@@ -26,6 +27,7 @@ interface AppState {
     setIsLocating: (locating: boolean) => void;
     setLocationError: (error: string | null) => void;
     clearNearbyStations: () => void;
+    setIsBottomSheetOpen: (open: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -40,6 +42,7 @@ export const useAppStore = create<AppState>()(
             nearbyStations: null,
             isLocating: false,
             locationError: null,
+            isBottomSheetOpen: false,
             setTab: (tab) => set({ currentTab: tab, searchQuery: '', selectedStation: null, returnAnchorGroupKey: null, nearbyStations: null, locationError: null }),
             setLanguage: (lang) => set({ language: lang }),
             setSearchQuery: (query) => set({ searchQuery: query }),
@@ -60,6 +63,7 @@ export const useAppStore = create<AppState>()(
             setIsLocating: (locating) => set({ isLocating: locating, locationError: null }),
             setLocationError: (error) => set({ locationError: error, isLocating: false }),
             clearNearbyStations: () => set({ nearbyStations: null, locationError: null }),
+            setIsBottomSheetOpen: (open) => set({ isBottomSheetOpen: open }),
         }),
         {
             name: 'train-eta-storage',

@@ -4,13 +4,13 @@
   /* measured at runtime via JS helper; fallback value used if not set */
   --app-header-height: 56px;
   --surface-blur: rgba(17, 24, 39, 0.7);
-  --surface-card: rgba(30, 41, 59, 0.4);
+  --surface-card: rgba(20, 35, 80, 0.6);
   --text-color: #f1f5f9;
   --text-muted: #94a3b8;
   --border-color: rgba(255, 255, 255, 0.08);
-  --mtr-color: #0072ce;
-  --lrt-color: #ffcc00;
-  --bus-color: #ef4444;
+  --mtr-color: #e11d48;
+  --lrt-color: #f59e0b;
+  --bus-color: #10b981;
 }
 
 * {
@@ -312,6 +312,148 @@ button,
   .animate-fade-in,
   .spin {
     animation: none !important;
+  }
+}
+
+/* Floating Action Button (FAB) for Geolocation */
+.floating-geo-button {
+  position: fixed;
+  bottom: calc(6.5rem + env(safe-area-inset-bottom));
+  right: calc(1rem + env(safe-area-inset-right));
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  z-index: 999;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.floating-geo-button:not(:disabled):hover {
+  transform: scale(1.1);
+}
+
+.floating-geo-button:disabled {
+  cursor: not-allowed;
+}
+
+/* Bottom Sheet Animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(11, 15, 26, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px 20px 0 0;
+  z-index: 1001;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.bottom-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+  z-index: 1000;
+}
+
+.bottom-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bottom-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  margin: 0 auto;
+}
+
+.bottom-sheet-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0.4rem;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.bottom-sheet-close:hover {
+  color: white;
+}
+
+.bottom-sheet-content {
+  overflow-y: auto;
+  padding: 0 1rem 2rem 1rem;
+  flex: 1;
+  scroll-behavior: smooth;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .floating-geo-button {
+    bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    right: calc(0.75rem + env(safe-area-inset-right));
+  }
+
+  .bottom-sheet {
+    max-height: 85vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottom-sheet,
+  .bottom-sheet-backdrop {
+    animation: none;
+  }
+
+  .floating-geo-button:hover {
+    transform: none;
   }
 }
 
