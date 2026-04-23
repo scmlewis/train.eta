@@ -41,9 +41,10 @@ interface SectionProps {
     isTC: boolean;
     onSelect: (s: NearbyStation) => void;
     isLast: boolean;
+    onStationSelected: () => void;
 }
 
-function ModeSection({ mode, entries, isTC, onSelect, isLast }: SectionProps) {
+function ModeSection({ mode, entries, isTC, onSelect, isLast, onStationSelected }: SectionProps) {
     if (entries.length === 0) return null;
 
     const modeLabel = MODE_LABEL[mode][isTC ? 'tc' : 'en'];
@@ -76,7 +77,10 @@ function ModeSection({ mode, entries, isTC, onSelect, isLast }: SectionProps) {
                     <button
                         key={`${station.mode}:${station.id}:${index}`}
                         type="button"
-                        onClick={() => onSelect(station)}
+                        onClick={() => {
+                            onSelect(station);
+                            onStationSelected();
+                        }}
                         style={{
                             width: '100%',
                             display: 'flex',
@@ -134,7 +138,7 @@ function ModeSection({ mode, entries, isTC, onSelect, isLast }: SectionProps) {
 }
 
 export default function NearbyStations({ stations }: Props) {
-    const { language, setSelectedStation } = useAppStore();
+    const { language, setSelectedStation, setIsBottomSheetOpen } = useAppStore();
     const isTC = language === 'TC';
 
     const activeModes = (['MTR', 'LRT', 'BUS'] as const).filter(m => stations[m].length > 0);
@@ -173,6 +177,7 @@ export default function NearbyStations({ stations }: Props) {
                     entries={stations[mode]}
                     isTC={isTC}
                     onSelect={setSelectedStation}
+                    onStationSelected={() => setIsBottomSheetOpen(false)}
                     isLast={i === activeModes.length - 1}
                 />
             ))}
