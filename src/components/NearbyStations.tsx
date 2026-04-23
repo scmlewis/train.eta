@@ -134,7 +134,7 @@ function ModeSection({ mode, entries, isTC, onSelect, isLast }: SectionProps) {
 }
 
 export default function NearbyStations({ stations }: Props) {
-    const { language, setSelectedStation, clearNearbyStations } = useAppStore();
+    const { language, setSelectedStation } = useAppStore();
     const isTC = language === 'TC';
 
     const activeModes = (['MTR', 'LRT', 'BUS'] as const).filter(m => stations[m].length > 0);

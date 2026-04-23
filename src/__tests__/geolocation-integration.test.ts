@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 // Mock geolocation before importing components
@@ -102,7 +101,7 @@ describe('Geolocation Feature Integration Tests', () => {
         });
 
         it('handles geolocation permission denied error', async () => {
-            const mockError: PositionError = {
+            const mockError: GeolocationPositionError = {
                 code: 1, // PERMISSION_DENIED
                 message: 'User denied geolocation',
                 PERMISSION_DENIED: 1,
@@ -111,7 +110,7 @@ describe('Geolocation Feature Integration Tests', () => {
             };
 
             (mockGeolocation.getCurrentPosition as any).mockImplementation(
-                (success: PositionCallback, error: PositionErrorCallback) => {
+                (_success: PositionCallback, error: PositionErrorCallback) => {
                     error(mockError);
                 }
             );
@@ -126,7 +125,7 @@ describe('Geolocation Feature Integration Tests', () => {
             await new Promise<void>((resolve) => {
                 mockGeolocation.getCurrentPosition(
                     () => {},
-                    (err) => {
+                    (err: GeolocationPositionError) => {
                         if (err.code === 1) {
                             setLocationError(
                                 'Location access denied. Please allow location in your browser settings.'
