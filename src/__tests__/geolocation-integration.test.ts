@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 // Mock geolocation before importing components
@@ -33,7 +32,7 @@ beforeEach(() => {
 });
 
 import { useAppStore } from '../store/useAppStore';
-import { getCurrentPosition, findNearestStations } from '../utils/geolocation';
+import { findNearestStations } from '../utils/geolocation';
 
 describe('Geolocation Feature Integration Tests', () => {
     beforeEach(() => {
@@ -74,7 +73,7 @@ describe('Geolocation Feature Integration Tests', () => {
             );
 
             // Simulate the geolocation flow
-            const { setIsLocating, setNearbyStations, setLocationError, setIsBottomSheetOpen } =
+            const { setIsLocating, setNearbyStations, setIsBottomSheetOpen } =
                 useAppStore.getState();
 
             setIsLocating(true);
@@ -84,8 +83,8 @@ describe('Geolocation Feature Integration Tests', () => {
             // Simulate getting position
             const position = await new Promise<GeolocationCoordinates>((resolve, reject) => {
                 mockGeolocation.getCurrentPosition(
-                    (pos) => resolve(pos.coords),
-                    (err) => reject(err)
+                    (pos: GeolocationPosition) => resolve(pos.coords),
+                    (err: GeolocationPositionError) => reject(err)
                 );
             });
 

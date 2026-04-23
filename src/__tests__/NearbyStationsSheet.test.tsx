@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 // Mock the NearbyStations component to simplify sheet testing
@@ -26,10 +25,6 @@ describe('NearbyStationsSheet Component', () => {
     it('has bottom sheet animations applied', () => {
         render(<NearbyStationsSheet />);
 
-        // Check for the style tag with animations
-        const styles = Array.from(document.querySelectorAll('style')).some(
-            s => s.textContent?.includes('slideUp') || s.textContent?.includes('fadeIn')
-        );
         // Animation styles may be applied via CSS modules or inline
         // Just verify component renders without throwing
         expect(true).toBe(true);
