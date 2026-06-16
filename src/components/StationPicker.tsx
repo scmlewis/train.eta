@@ -6,7 +6,7 @@ import type { StationOption, TransportGroup } from '../constants/transportData';
 import { useAppStore } from '../store/useAppStore';
 import EtaDisplay from './EtaDisplay';
 import NearbyStations from './NearbyStations';
-import { fetchRouteStops } from '../services/busStops';
+import { fetchRouteStops, getStopName, collapseConsecutiveSameName } from '../services/busStops';
 import { scrollToElement, scrollToTop, setHeaderHeightVar } from '../utils/scroll';
 
 // Routes verified as circular from MTR HK website
@@ -63,22 +63,6 @@ function buildBusDirectionGroups(baseGroups: TransportGroup[]): BusDisplayGroup[
             const secondaryDir = Object.keys(byDir).find(d => d !== primaryDir) || primaryDir;
             
             const mergedStopsRaw: StationOption[] = [];
-
-            const getStopName = (stop: StationOption): string => {
-                if (typeof stop.name === 'string') return stop.name;
-                return stop.name.tc || stop.name.en || '';
-            };
-
-            const collapseConsecutiveSameName = (stops: StationOption[]): StationOption[] => {
-                const result: StationOption[] = [];
-                for (const stop of stops) {
-                    const prev = result[result.length - 1];
-                    if (!prev || getStopName(prev) !== getStopName(stop)) {
-                        result.push(stop);
-                    }
-                }
-                return result;
-            };
             
             // Add all stops from primary direction
             if (byDir[primaryDir]) {
@@ -282,11 +266,6 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                 if (allByDir[primaryDir]) mergedRaw.push(...allByDir[primaryDir]);
                 if (secondaryDir !== primaryDir && allByDir[secondaryDir]) mergedRaw.push(...allByDir[secondaryDir]);
 
-                const getStopName = (stop: StationOption): string => {
-                    if (typeof stop.name === 'string') return stop.name;
-                    return stop.name.tc || stop.name.en || '';
-                };
-
                 const mergedStops: StationOption[] = [];
                 for (const stop of mergedRaw) {
                     const prev = mergedStops[mergedStops.length - 1];
@@ -388,22 +367,6 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                     // Build merged list: show complete cycle (primary + secondary + loop back to start)
                     // For circular routes, no deduplication between directions - show the full path
                     const mergedStopsRaw: StationOption[] = [];
-
-                    const getStopName = (stop: StationOption): string => {
-                        if (typeof stop.name === 'string') return stop.name;
-                        return stop.name.tc || stop.name.en || '';
-                    };
-
-                    const collapseConsecutiveSameName = (stops: StationOption[]): StationOption[] => {
-                        const result: StationOption[] = [];
-                        for (const stop of stops) {
-                            const prev = result[result.length - 1];
-                            if (!prev || getStopName(prev) !== getStopName(stop)) {
-                                result.push(stop);
-                            }
-                        }
-                        return result;
-                    };
                     
                     // Add all stops from primary direction (live takes precedence over static)
                     const primaryLivePayload = allLiveByDir[primaryDir];

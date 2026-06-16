@@ -269,7 +269,6 @@ export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
     const params = { language: lang === 'TC' ? 'zh' : 'en', routeName: route };
     const url = API_ENDPOINTS.BUS;
 
-    console.log('[fetchBus] Calling:', url);
     let lastErrMsg = '';
 
     // API contract (revised Jan 2026): POST JSON payload to base endpoint
@@ -284,20 +283,16 @@ export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
             const cleanData = rawData.replace(/^\uFEFF/, '');
             try {
                 const data = JSON.parse(cleanData);
-                console.log('[fetchBus] Success with POST:', data);
                 return normalizeBus(data, lang);
             } catch (parseErr) {
                 lastErrMsg = `POST parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
-                console.warn('[fetchBus] POST parse failed', parseErr);
             }
         } else {
             const txt = await response.text().catch(() => '<no body>');
             lastErrMsg = `POST status ${response.status}: ${txt.slice(0,100)}`;
-            console.warn('[fetchBus] POST failed', response.status, txt.slice(0, 100));
         }
     } catch (err: any) {
         lastErrMsg = `POST request error: ${err && err.message}`;
-        console.warn('[fetchBus] POST request error', err);
     }
 
     throw new Error(`Failed to fetch Bus data (${lastErrMsg || 'unknown error'})`);

@@ -356,16 +356,6 @@ button,
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
 .bottom-sheet {
   position: fixed;
   bottom: 0;

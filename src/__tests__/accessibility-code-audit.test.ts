@@ -79,19 +79,19 @@ describe('Accessibility Code Audit', () => {
     // Test 5: Icon Accessibility
     describe('Icon & Image Accessibility', () => {
         it('Lucide icons from react library have proper aria handling', async () => {
-            const etaCardModule = await import('../components/EtaCard');
-            const etaCardSource = etaCardModule.default.toString();
+            const etaTableModule = await import('../components/EtaTable');
+            const etaTableSource = etaTableModule.default.toString();
             
             // Should have aria-label for icon-only content
-            expect(etaCardSource).toContain('aria-label');
+            expect(etaTableSource).toContain('aria-label');
         });
 
         it('SVG icons should use aria-hidden when decorative', async () => {
-            const etaCardModule = await import('../components/EtaCard');
-            const etaCardSource = etaCardModule.default.toString();
+            const etaTableModule = await import('../components/EtaTable');
+            const etaTableSource = etaTableModule.default.toString();
             
             // Should have aria-hidden for decorative SVGs
-            expect(etaCardSource).toContain('aria-hidden');
+            expect(etaTableSource).toContain('aria-hidden');
         });
     });
 
@@ -146,12 +146,12 @@ describe('Accessibility Code Audit', () => {
         });
 
         it('does not rely on color alone to convey information', async () => {
-            const etaCardModule = await import('../components/EtaCard');
-            const etaCardSource = etaCardModule.default.toString();
+            const etaTableModule = await import('../components/EtaTable');
+            const etaTableSource = etaTableModule.default.toString();
             
             // Should have text labels in addition to color
-            expect(etaCardSource).toContain('destination');
-            expect(etaCardSource).toContain('time');
+            expect(etaTableSource).toContain('destination');
+            expect(etaTableSource).toContain('time');
         });
     });
 

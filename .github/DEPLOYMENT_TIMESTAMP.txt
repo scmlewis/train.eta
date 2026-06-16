@@ -1,2 +1,0 @@
-Last deployment triggered: 2026-02-26
-Commit: Force redeployment to ensure all changes are live

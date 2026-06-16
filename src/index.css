@@ -2,16 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg-color: #0f172a;
   --surface-color: rgba(30, 41, 59, 0.7);
-  --primary-color: #3b82f6;
-  --text-color: #f8fafc;
-  --text-muted: #94a3b8;
-  --border-color: rgba(255, 255, 255, 0.1);
-  
-  --mtr-color: #e11d48;
-  --lrt-color: #f59e0b;
-  --bus-color: #10b981;
 }
 
 * {
@@ -44,12 +35,6 @@ body {
   border-radius: 16px;
   padding: 1.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {

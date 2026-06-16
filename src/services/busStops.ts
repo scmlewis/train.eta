@@ -11,6 +11,22 @@ function parseStopId(id?: string) {
     return { dir: m[1].toUpperCase(), seq: parseInt(m[2], 10) };
 }
 
+function getStopName(stop: StationOption): string {
+    if (typeof stop.name === 'string') return stop.name;
+    return stop.name.tc || stop.name.en || '';
+}
+
+function collapseConsecutiveSameName(stops: StationOption[]): StationOption[] {
+    const result: StationOption[] = [];
+    for (const stop of stops) {
+        const prev = result[result.length - 1];
+        if (!prev || getStopName(prev) !== getStopName(stop)) {
+            result.push(stop);
+        }
+    }
+    return result;
+}
+
 export type DirectionStops = {
     dir: string | null;
     stops: Array<{ id: string; seq: number | null; raw: any }>;
@@ -47,21 +63,10 @@ export async function fetchRouteStops(routeName: string, lang: 'EN' | 'TC' = 'EN
         return a.seq - b.seq;
     }));
 
-    if (typeof window !== 'undefined') {
-        console.log(`[busStops] ${routeName} - Grouped into directions:`, Object.keys(byDir));
-    }
-
     return {
         routeName: data.routeName || routeName,
         byDir
     };
 }
 
-export function toStationOptions(stops: Array<{ id: string; seq: number | null; raw: any }>, nameLookup?: (id: string) => string | undefined): StationOption[] {
-    return stops.map((s, i) => ({
-        id: s.id,
-        name: nameLookup ? (nameLookup(s.id) || `Stop ${i + 1}`) : `Stop ${i + 1}`
-    } as StationOption));
-}
-
-export { normalizeStopId, parseStopId };
+export { normalizeStopId, parseStopId, getStopName, collapseConsecutiveSameName };

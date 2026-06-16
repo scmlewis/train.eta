@@ -112,36 +112,6 @@ export default function NearbyStationsSheet() {
                     <NearbyStations stations={nearbyStations} />
                 </div>
             </div>
-
-            {/* Animations */}
-            <style>
-                {`
-                    @keyframes fadeIn {
-                        from {
-                            opacity: 0;
-                        }
-                        to {
-                            opacity: 1;
-                        }
-                    }
-
-                    @keyframes slideUp {
-                        from {
-                            transform: translateY(100%);
-                            opacity: 0;
-                        }
-                        to {
-                            transform: translateY(0);
-                            opacity: 1;
-                        }
-                    }
-
-                    /* Smooth scroll in sheet */
-                    div[style*="overflow: auto"] {
-                        scroll-behavior: smooth;
-                    }
-                `}
-            </style>
         </>
     );
 }
