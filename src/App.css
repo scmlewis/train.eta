@@ -412,10 +412,6 @@ button,
   .bottom-sheet {
     max-height: 85vh;
   }
-
-  .content {
-    font-size: 14px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import Header from './components/Header';
 import BottomNav from './components/Tabs';
 import StationPicker from './components/StationPicker';
@@ -16,6 +17,10 @@ function App() {
     large: '18px',
   };
 
+  useEffect(() => {
+    document.documentElement.style.fontSize = fontSizeMap[fontSize];
+  }, [fontSize]);
+
   const renderContent = () => {
     if (currentTab === 'SETTINGS') return <About />;
 
@@ -27,7 +32,7 @@ function App() {
   return (
     <>
       <Header />
-      <main className="content" style={{ fontSize: fontSizeMap[fontSize] }}>
+      <main className="content">
         {renderContent()}
       </main>
       <FloatingGeoButton />
