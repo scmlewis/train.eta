@@ -48,7 +48,6 @@ export function normalizeMTR(data: RawMTRResponse | any, stationCode: string, li
         // status=0 means service is not available (outside operating hours or disruption).
         // Handle this first so provider messages like "The contents are empty!" don't get mistaken for normal empty arrivals.
         if (data?.status === 0) {
-            console.warn(`MTR service not available for ${lineCode}-${stationCode}:`, data.message || '(no message)');
             return { up: [], down: [], offline: true, message: data.message || 'Service currently not available' };
         }
         // If API explicitly indicates empty contents for this station, treat as no arrivals rather than a hard error.
@@ -75,7 +74,6 @@ export function normalizeMTR(data: RawMTRResponse | any, stationCode: string, li
             }
         }
         if (!stationData) {
-            console.warn('MTR: station data missing for', `${lineCode}-${stationCode}`, 'available keys:', data && data.data ? Object.keys(data.data).slice(0,20) : []);
             return { up: [], down: [] };
         }
 
