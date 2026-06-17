@@ -8,7 +8,13 @@ import { useAppStore } from './store/useAppStore';
 import './App.css';
 
 function App() {
-  const { currentTab } = useAppStore();
+  const { currentTab, fontSize } = useAppStore();
+
+  const fontSizeMap: Record<string, string> = {
+    small: '14px',
+    default: '16px',
+    large: '18px',
+  };
 
   const renderContent = () => {
     if (currentTab === 'SETTINGS') return <About />;
@@ -21,7 +27,7 @@ function App() {
   return (
     <>
       <Header />
-      <main className="content">
+      <main className="content" style={{ fontSize: fontSizeMap[fontSize] }}>
         {renderContent()}
       </main>
       <FloatingGeoButton />

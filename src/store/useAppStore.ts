@@ -5,9 +5,12 @@ import type { NearbyStationGroups } from '../utils/geolocation';
 
 export type TabId = TransportMode | 'FAV' | 'SETTINGS';
 
+export type FontSize = 'small' | 'default' | 'large';
+
 interface AppState {
     currentTab: TabId;
     language: 'EN' | 'TC';
+    fontSize: FontSize;
     searchQuery: string;
     selectedStation: Station | null;
     returnAnchorGroupKey: string | null;
@@ -19,6 +22,7 @@ interface AppState {
     isBottomSheetOpen: boolean;
     setTab: (tab: TabId) => void;
     setLanguage: (lang: 'EN' | 'TC') => void;
+    setFontSize: (size: FontSize) => void;
     setSearchQuery: (query: string) => void;
     setSelectedStation: (station: Station | null) => void;
     setReturnAnchorGroupKey: (groupKey: string | null) => void;
@@ -35,6 +39,7 @@ export const useAppStore = create<AppState>()(
         (set) => ({
             currentTab: 'MTR',
             language: 'EN',
+            fontSize: 'default',
             searchQuery: '',
             selectedStation: null,
             returnAnchorGroupKey: null,
@@ -45,6 +50,7 @@ export const useAppStore = create<AppState>()(
             isBottomSheetOpen: false,
             setTab: (tab) => set({ currentTab: tab, searchQuery: '', selectedStation: null, returnAnchorGroupKey: null, nearbyStations: null, locationError: null }),
             setLanguage: (lang) => set({ language: lang }),
+            setFontSize: (size) => set({ fontSize: size }),
             setSearchQuery: (query) => set({ searchQuery: query }),
             setSelectedStation: (station) => set({ selectedStation: station }),
             setReturnAnchorGroupKey: (groupKey) => set({ returnAnchorGroupKey: groupKey }),
@@ -71,6 +77,7 @@ export const useAppStore = create<AppState>()(
             partialize: (state) => ({
                 currentTab: state.currentTab,
                 language: state.language,
+                fontSize: state.fontSize,
                 favoriteStations: state.favoriteStations,
             }),
         }

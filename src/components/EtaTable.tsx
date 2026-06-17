@@ -155,15 +155,13 @@ export default function EtaTable({ title, etas, trackColor = 'var(--primary-colo
                                             color: isDeparting || isArriving ? '#10b981' : '#e2e8f0'
                                         }}>
                                             {isDeparting ? (
-                                                // Option B: Departing label + clock time (HH:MM) when available
                                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.1rem' }}>
-                                                    <span style={{ color: '#10b981', fontWeight: 700, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{isTC ? '即將開出/\n已離開' : 'Departing\n/ Departed'}</span>
+                                                    <span style={{ color: '#10b981', fontWeight: 700, fontSize: 'inherit' }}>{isTC ? '即將開出' : 'Departing'}</span>
                                                     {displayTime && <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#10b981', opacity: 0.75 }}>({displayTime})</span>}
                                                 </div>
                                             ) : isArriving ? (
-                                                // Arriving label + clock time when available
                                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.1rem' }}>
-                                                    <span style={{ color: '#10b981', fontWeight: 700 }}>{isTC ? '即將抵達' : 'Arriving'}</span>
+                                                    <span style={{ color: '#10b981', fontWeight: 700, fontSize: 'inherit' }}>{isTC ? '即將抵達' : 'Arriving'}</span>
                                                     {displayTime && <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#10b981', opacity: 0.75 }}>({displayTime})</span>}
                                                 </div>
                                             ) : hasTtiMinutes ? (

@@ -1,12 +1,62 @@
 import { useAppStore } from '../store/useAppStore';
+import type { FontSize } from '../store/useAppStore';
 
 export default function About() {
-    const { language } = useAppStore();
+    const { language, fontSize, setFontSize } = useAppStore();
     const isTC = language === 'TC';
+
+    const fontSizeOptions: { value: FontSize; label: string; preview: string }[] = [
+        { value: 'small', label: isTC ? '細' : 'S', preview: '14px' },
+        { value: 'default', label: isTC ? '中' : 'M', preview: '16px' },
+        { value: 'large', label: isTC ? '大' : 'L', preview: '18px' },
+    ];
 
     return (
         <div className="glass-card" style={{ padding: '1.25rem 1.25rem 1.5rem', lineHeight: 1.5 }}>
-            <h2 style={{ marginBottom: '0.6rem', fontSize: '1.15rem' }}>{isTC ? '關於此應用程式' : 'About This App'}</h2>
+            <h2 style={{ marginBottom: '0.6rem', fontSize: '1.15rem' }}>{isTC ? '設定' : 'Settings'}</h2>
+
+            {/* Font Size Setting */}
+            <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                    {isTC ? '字體大小' : 'Font Size'}
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {fontSizeOptions.map(opt => (
+                        <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setFontSize(opt.value)}
+                            style={{
+                                flex: 1,
+                                padding: '0.6rem 0.5rem',
+                                borderRadius: '10px',
+                                border: fontSize === opt.value
+                                    ? '1.5px solid var(--primary-color)'
+                                    : '1px solid rgba(255,255,255,0.08)',
+                                background: fontSize === opt.value
+                                    ? 'rgba(59, 130, 246, 0.1)'
+                                    : 'rgba(255,255,255,0.03)',
+                                color: fontSize === opt.value ? 'var(--text-color)' : 'var(--text-muted)',
+                                fontWeight: 600,
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '0.15rem',
+                            }}
+                        >
+                            <span style={{ fontSize: opt.value === 'small' ? '0.8rem' : opt.value === 'large' ? '1.1rem' : '0.95rem', fontWeight: 700 }}>
+                                {opt.label}
+                            </span>
+                            <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>{opt.preview}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <h3 style={{ marginBottom: '0.4rem' }}>{isTC ? '關於' : 'About'}</h3>
 
             <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
                 {isTC ? (
