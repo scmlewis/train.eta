@@ -176,13 +176,11 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
     const t = {
         loading: lang === 'tc' ? '載入中...' : 'Loading...',
         noData: lang === 'tc' ? '暫無數據' : 'No data',
-        noTrains: lang === 'tc' ? '暫無班次' : 'No upcoming trains',
-        noBus: lang === 'tc' ? '暫無巴士班次' : 'No bus schedule',
+        noTrains: lang === 'tc' ? '暫無班次' : 'No upcoming departures',
         noMatch: lang === 'tc' ? '無符合篩選' : 'No matches',
         towards: lang === 'tc' ? '往 ' : 'To ',
         platform: lang === 'tc' ? '月台' : 'Platform',
         atStop: lang === 'tc' ? '此站' : 'at stop',
-        noArrivalsAtStop: lang === 'tc' ? '此站暫無班次' : 'No arrivals at this stop',
         all: lang === 'tc' ? '全部' : 'All',
         to: lang === 'tc' ? '往 ' : 'To ',
         lastUpdate: lang === 'tc' ? '更新: ' : 'Upd: '
@@ -190,7 +188,7 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
 
     if (isLoading) return <div className="glass-card animate-fade-in" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>{t.loading}</div>;
     if (isError) return <div className="glass-card animate-fade-in" style={{ color: '#ef4444', textAlign: 'center', padding: '2rem' }}>
-        <div style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Error loading data</div>
+        <div style={{ marginBottom: '0.5rem', fontWeight: 600 }}>{lang === 'tc' ? '載入資料失敗' : 'Error loading data'}</div>
         <div style={{ fontSize: '0.85rem', color: '#ff6b6b' }}>{(error as Error).message}</div>
         {typeof error?.cause === 'string' && <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: '#ffa8a8' }}>{error.cause}</div>}
     </div>;
@@ -293,7 +291,7 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
         }
 
         if (effectiveTab === 'BUS' && isBusData(data)) {
-            if (data.length === 0) return <div style={{ color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'center' }}>{t.noBus}</div>;
+            if (data.length === 0) return <div style={{ color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'center' }}>{t.noTrains}</div>;
 
             const normalizeStopId = (id?: string) => (String(id || '').replace(/-n(?=[A-Z0-9])/i, '-')).toUpperCase();
 
@@ -301,7 +299,7 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
                 .filter((eta) => normalizeStopId(eta.stopId) === normalizeStopId(stationId))
                 .slice(0, 5);
 
-            if (filteredBusEtas.length === 0) return <div style={{ color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'center' }}>{t.noArrivalsAtStop}</div>;
+            if (filteredBusEtas.length === 0) return <NoMatchCard lang={lang} />;
             const liveDestinations = [...new Set(filteredBusEtas.map((eta) => eta.destination).filter(Boolean))];
             const routeCode = (extractBusRoute(stationId, line) || '').trim().toUpperCase();
             const meaningfulLiveDestinations = liveDestinations.filter(dest => String(dest).trim().toUpperCase() !== routeCode);
