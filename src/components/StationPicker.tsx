@@ -637,6 +637,94 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         );
     }
 
+    // FAV tab: show only favorited stations grouped by mode
+    if (currentTab === 'FAV') {
+        const grouped = {
+            MTR: favoriteStations.filter(s => s.mode === 'MTR'),
+            LRT: favoriteStations.filter(s => s.mode === 'LRT'),
+            BUS: favoriteStations.filter(s => s.mode === 'BUS'),
+        };
+        const hasAny = grouped.MTR.length > 0 || grouped.LRT.length > 0 || grouped.BUS.length > 0;
+
+        return (
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {!hasAny ? (
+                    <div className="glass-card" style={{
+                        textAlign: 'center', padding: '3rem 2rem',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem',
+                    }}>
+                        <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: '64px', height: '64px', borderRadius: '16px',
+                            background: 'rgba(245,158,11,0.1)', color: 'rgba(245,158,11,0.6)',
+                        }}>
+                            <Star size={32} strokeWidth={1.5} />
+                        </div>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-color)', margin: 0 }}>
+                            {language === 'TC' ? '尚未收藏車站' : 'No Favorites Yet'}
+                        </h3>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: 0, maxWidth: '280px', lineHeight: '1.5' }}>
+                            {language === 'TC'
+                                ? '在車站列表中點擊星標即可收藏常用車站。'
+                                : 'Tap the star icon on any station to save it here for quick access.'}
+                        </p>
+                    </div>
+                ) : (
+                    (['MTR', 'LRT', 'BUS'] as const).map(mode => {
+                        if (grouped[mode].length === 0) return null;
+                        const modeLabel = mode === 'MTR' ? (language === 'TC' ? '港鐵' : 'MTR')
+                            : mode === 'LRT' ? (language === 'TC' ? '輕鐵' : 'Light Rail')
+                            : (language === 'TC' ? '巴士' : 'Bus');
+                        const modeColor = mode === 'MTR' ? 'var(--mtr-color)' : mode === 'LRT' ? 'var(--lrt-color)' : 'var(--bus-color)';
+                        return (
+                            <div key={mode} className="glass-card" style={{ padding: 0, overflow: 'hidden', marginBottom: '0.4rem' }}>
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                    padding: '0.6rem 1.15rem', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                    background: 'rgba(255,255,255,0.02)',
+                                }}>
+                                    <div className="line-indicator" style={{ width: '4px', height: '16px', borderRadius: '4px', background: modeColor }}></div>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>{modeLabel}</span>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', opacity: 0.6 }}>({grouped[mode].length})</span>
+                                </div>
+                                <div>
+                                    {grouped[mode].map(station => {
+                                        const nameStr = resolveStationName(station);
+                                        return (
+                                            <button
+                                                type="button"
+                                                role="option"
+                                                aria-label={nameStr}
+                                                key={`${station.id}-${station.mode}`}
+                                                className="station-row"
+                                                onClick={() => {
+                                                    setReturnAnchorGroupKey(null);
+                                                    setSelectedStation(station);
+                                                }}
+                                                style={{
+                                                    width: '100%', padding: '0.75rem 1.15rem', minHeight: '44px',
+                                                    display: 'flex', alignItems: 'center', gap: '0.85rem',
+                                                    textAlign: 'left', transition: 'background 0.2s',
+                                                    border: 'none', background: 'transparent', color: 'white', cursor: 'pointer',
+                                                    borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                                }}
+                                            >
+                                                <div className="line-indicator" style={{ width: '6px', height: '6px', borderRadius: '50%', border: `1.5px solid ${modeColor}` }}></div>
+                                                <span style={{ fontSize: '0.95rem', fontWeight: 600, flex: 1 }}>{nameStr}</span>
+                                                {station.line && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0 }}>{station.line}</span>}
+                                                <StarToggle station={station} />
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+        );
+    }
+
     return (
         <div role="listbox" className="accordion-list animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             {/* Nearby stations pinned section — filtered to current tab's mode only */}
