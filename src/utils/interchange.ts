@@ -3,13 +3,14 @@ import { getLineColor } from '../constants/mtrData';
 
 export interface InterchangeLine {
     lineCode: string;
-    lineName: string;
+    lineNameEn: string;
+    lineNameTc: string;
     lineColor: string;
 }
 
 /**
  * Find all MTR lines that serve a given station code.
- * Returns an array of line info objects sorted by line name.
+ * Returns an array of line info objects sorted by English line name.
  */
 export function findInterchangeLines(stationId: string): InterchangeLine[] {
     const lines: InterchangeLine[] = [];
@@ -21,15 +22,16 @@ export function findInterchangeLines(stationId: string): InterchangeLine[] {
                 seen.add(station.line);
                 const groupName = typeof group.groupName === 'string'
                     ? group.groupName
-                    : (group.groupName.en || group.groupName.tc || station.line);
+                    : group.groupName;
                 lines.push({
                     lineCode: station.line,
-                    lineName: groupName,
+                    lineNameEn: typeof groupName === 'string' ? groupName : (groupName.en || station.line),
+                    lineNameTc: typeof groupName === 'string' ? groupName : (groupName.tc || station.line),
                     lineColor: getLineColor(station.line),
                 });
             }
         }
     }
 
-    return lines.sort((a, b) => a.lineName.localeCompare(b.lineName));
+    return lines.sort((a, b) => a.lineNameEn.localeCompare(b.lineNameEn));
 }

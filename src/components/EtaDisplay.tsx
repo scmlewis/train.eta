@@ -331,6 +331,7 @@ export default function EtaDisplay({ stationId, stationName, line, mode, interch
                 <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.6rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '0.2rem' }}>
                     {interchangeLines.map(il => {
                         const isActive = activeLine === il.lineCode;
+                        const lineLabel = lang === 'tc' ? il.lineNameTc : il.lineNameEn;
                         return (
                             <button
                                 key={il.lineCode}
@@ -344,7 +345,7 @@ export default function EtaDisplay({ stationId, stationName, line, mode, interch
                                     boxShadow: isActive ? `0 2px 8px ${il.lineColor}44` : 'none',
                                 }}
                             >
-                                {il.lineName}
+                                {lineLabel}
                             </button>
                         );
                     })}
