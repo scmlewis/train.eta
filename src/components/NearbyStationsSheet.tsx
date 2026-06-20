@@ -1,9 +1,10 @@
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import NearbyStations from './NearbyStations';
+import { getCurrentPosition, findNearestStations } from '../utils/geolocation';
 
 export default function NearbyStationsSheet() {
-    const { isBottomSheetOpen, setIsBottomSheetOpen, nearbyStations, clearNearbyStations } = useAppStore();
+    const { isBottomSheetOpen, setIsBottomSheetOpen, nearbyStations, clearNearbyStations, isLocating, setIsLocating, setNearbyStations, setLocationError } = useAppStore();
     const isTC = useAppStore((state) => state.language === 'TC');
 
     if (!isBottomSheetOpen || !nearbyStations) {
@@ -13,6 +14,18 @@ export default function NearbyStationsSheet() {
     const handleClose = () => {
         setIsBottomSheetOpen(false);
         clearNearbyStations();
+    };
+
+    const handleRefresh = async () => {
+        if (isLocating) return;
+        setIsLocating(true);
+        try {
+            const coords = await getCurrentPosition();
+            const results = findNearestStations(coords.latitude, coords.longitude);
+            setNearbyStations(results);
+        } catch (err) {
+            setLocationError(typeof err === 'string' ? err : 'Unable to get location.');
+        }
     };
 
     const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -74,31 +87,60 @@ export default function NearbyStationsSheet() {
                             margin: '0 auto',
                         }}
                     />
-                    <button
-                        type="button"
-                        aria-label={isTC ? '關閉' : 'Close'}
-                        onClick={handleClose}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: 'var(--text-muted)',
-                            padding: '0.4rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            borderRadius: '6px',
-                            lineHeight: 1,
-                            transition: 'color 0.2s',
-                        }}
-                        onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.color = 'white';
-                        }}
-                        onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)';
-                        }}
-                    >
-                        <X size={20} />
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <button
+                            type="button"
+                            aria-label={isTC ? '重新整理' : 'Refresh'}
+                            onClick={handleRefresh}
+                            disabled={isLocating}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: isLocating ? 'default' : 'pointer',
+                                color: 'var(--text-muted)',
+                                padding: '0.4rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                borderRadius: '6px',
+                                lineHeight: 1,
+                                transition: 'color 0.2s',
+                                opacity: isLocating ? 0.5 : 1,
+                            }}
+                            onMouseEnter={(e) => {
+                                if (!isLocating) (e.currentTarget as HTMLButtonElement).style.color = 'white';
+                            }}
+                            onMouseLeave={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)';
+                            }}
+                        >
+                            <RefreshCw size={18} className={isLocating ? 'animate-spin' : ''} />
+                        </button>
+                        <button
+                            type="button"
+                            aria-label={isTC ? '關閉' : 'Close'}
+                            onClick={handleClose}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: 'var(--text-muted)',
+                                padding: '0.4rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                borderRadius: '6px',
+                                lineHeight: 1,
+                                transition: 'color 0.2s',
+                            }}
+                            onMouseEnter={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.color = 'white';
+                            }}
+                            onMouseLeave={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)';
+                            }}
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content */}

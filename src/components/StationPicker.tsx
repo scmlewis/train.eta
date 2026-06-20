@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronUp, RotateCw, Search, MapPin } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { ChevronDown, ChevronUp, RotateCw, Search, MapPin, Star, Heart } from 'lucide-react';
 import { MTR_LINE_GROUPS, LRT_GROUPS, BUS_GROUPS } from '../constants/transportData';
 import { BUS_STOP_NAMES } from '../constants/busStopNames';
 import type { StationOption, TransportGroup } from '../constants/transportData';
@@ -8,6 +8,8 @@ import EtaDisplay from './EtaDisplay';
 import NearbyStations from './NearbyStations';
 import { fetchRouteStops, getStopName, collapseConsecutiveSameName } from '../services/busStops';
 import { scrollToElement, scrollToTop, setHeaderHeightVar } from '../utils/scroll';
+import { findInterchangeLines } from '../utils/interchange';
+import type { Station } from '../types/eta';
 
 // Routes verified as circular from MTR HK website
 // For circular routes, all stops from all directions are merged and shown together
@@ -128,7 +130,7 @@ function buildBusDirectionGroups(baseGroups: TransportGroup[]): BusDisplayGroup[
 }
 
 export default function StationList({ currentTab }: { currentTab: string }) {
-    const { language, searchQuery, setSearchQuery, selectedStation, setSelectedStation, returnAnchorGroupKey, setReturnAnchorGroupKey, nearbyStations } = useAppStore();
+    const { language, searchQuery, setSearchQuery, selectedStation, setSelectedStation, returnAnchorGroupKey, setReturnAnchorGroupKey, nearbyStations, favoriteStations, toggleFavorite } = useAppStore();
     const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
     const [stationLastUpdated, setStationLastUpdated] = useState<string | null>(null);
     const refetchersRef = useRef<Array<() => void>>([]);
@@ -490,8 +492,122 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         return resolveName(station.name);
     };
 
+    // Star toggle button component
+    const StarToggle = ({ station }: { station: Station }) => {
+        const isFav = favoriteStations.some(s => s.id === station.id && s.mode === station.mode);
+        return (
+            <button
+                type="button"
+                aria-label={isFav ? (language === 'TC' ? '取消收藏' : 'Remove from favorites') : (language === 'TC' ? '加入收藏' : 'Add to favorites')}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(station);
+                }}
+                style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+                    color: isFav ? '#f59e0b' : 'var(--text-muted)', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    transition: 'color 0.15s, transform 0.15s',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.2)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
+            >
+                <Star size={16} fill={isFav ? '#f59e0b' : 'none'} />
+            </button>
+        );
+    };
+
+    // FAV tab: show only favorited stations grouped by mode
+    if (currentTab === 'FAV') {
+        const grouped = {
+            MTR: favoriteStations.filter(s => s.mode === 'MTR'),
+            LRT: favoriteStations.filter(s => s.mode === 'LRT'),
+            BUS: favoriteStations.filter(s => s.mode === 'BUS'),
+        };
+        const hasAny = grouped.MTR.length > 0 || grouped.LRT.length > 0 || grouped.BUS.length > 0;
+
+        return (
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {!hasAny ? (
+                    <div className="glass-card" style={{
+                        textAlign: 'center', padding: '3rem 2rem',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem',
+                    }}>
+                        <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: '64px', height: '64px', borderRadius: '16px',
+                            background: 'rgba(245,158,11,0.1)', color: 'rgba(245,158,11,0.6)',
+                        }}>
+                            <Star size={32} strokeWidth={1.5} />
+                        </div>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-color)', margin: 0 }}>
+                            {language === 'TC' ? '尚未收藏車站' : 'No Favorites Yet'}
+                        </h3>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: 0, maxWidth: '280px', lineHeight: '1.5' }}>
+                            {language === 'TC'
+                                ? '在車站列表中點擊星標即可收藏常用車站。'
+                                : 'Tap the star icon on any station to save it here for quick access.'}
+                        </p>
+                    </div>
+                ) : (
+                    (['MTR', 'LRT', 'BUS'] as const).map(mode => {
+                        if (grouped[mode].length === 0) return null;
+                        const modeLabel = mode === 'MTR' ? (language === 'TC' ? '港鐵' : 'MTR')
+                            : mode === 'LRT' ? (language === 'TC' ? '輕鐵' : 'Light Rail')
+                            : (language === 'TC' ? '巴士' : 'Bus');
+                        const modeColor = mode === 'MTR' ? 'var(--mtr-color)' : mode === 'LRT' ? 'var(--lrt-color)' : 'var(--bus-color)';
+                        return (
+                            <div key={mode} className="glass-card" style={{ padding: 0, overflow: 'hidden', marginBottom: '0.4rem' }}>
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                    padding: '0.6rem 1.15rem', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                    background: 'rgba(255,255,255,0.02)',
+                                }}>
+                                    <div className="line-indicator" style={{ width: '4px', height: '16px', borderRadius: '4px', background: modeColor }}></div>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>{modeLabel}</span>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', opacity: 0.6 }}>({grouped[mode].length})</span>
+                                </div>
+                                <div>
+                                    {grouped[mode].map(station => {
+                                        const nameStr = resolveStationName(station);
+                                        return (
+                                            <button
+                                                type="button"
+                                                role="option"
+                                                aria-label={nameStr}
+                                                key={`${station.id}-${station.mode}`}
+                                                className="station-row"
+                                                onClick={() => {
+                                                    setReturnAnchorGroupKey(null);
+                                                    setSelectedStation(station);
+                                                }}
+                                                style={{
+                                                    width: '100%', padding: '0.75rem 1.15rem', minHeight: '44px',
+                                                    display: 'flex', alignItems: 'center', gap: '0.85rem',
+                                                    textAlign: 'left', transition: 'background 0.2s',
+                                                    border: 'none', background: 'transparent', color: 'white', cursor: 'pointer',
+                                                    borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                                }}
+                                            >
+                                                <div className="line-indicator" style={{ width: '6px', height: '6px', borderRadius: '50%', border: `1.5px solid ${modeColor}` }}></div>
+                                                <span style={{ fontSize: '0.95rem', fontWeight: 600, flex: 1 }}>{nameStr}</span>
+                                                {station.line && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0 }}>{station.line}</span>}
+                                                <StarToggle station={station} />
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+        );
+    }
+
     if (selectedStation) {
         const station = selectedStation as any;
+        const interchangeLines = station.mode === 'MTR' ? findInterchangeLines(station.id) : [];
         return (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem', margin: '0.4rem 0' }}>
@@ -513,6 +629,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                     stationName={resolveStationName(station)}
                     line={station.line || station.group}
                     mode={station.mode}
+                    interchangeLines={interchangeLines}
                     onUpdateTime={setStationLastUpdated}
                     onRegisterRefetch={registerRefetch}
                 />
@@ -687,6 +804,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                             <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.2rem 0' }}>
                                                 {dyn.stations.map((station: any) => {
                                                     const nameStr = typeof station.name === 'string' ? station.name : (language === 'TC' ? station.name.tc : station.name.en);
+                                                    const stationForFav: Station = { id: station.id, name: nameStr, mode: 'BUS' };
                                                     return (
                                                         <button
                                                             type="button"
@@ -701,7 +819,8 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                                             style={{ width: '100%', padding: '0.6rem 1.15rem 0.6rem 2.45rem', minHeight: '40px', display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left', transition: 'background 0.2s', border: 'none', background: 'transparent', color: 'white', cursor: 'pointer' }}
                                                         >
                                                             <div className="line-indicator" style={{ width: '5px', height: '5px', borderRadius: '50%', border: `1.5px solid ${group.color}` }}></div>
-                                                            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{nameStr}</span>
+                                                            <span style={{ fontSize: '0.9rem', fontWeight: 500, flex: 1 }}>{nameStr}</span>
+                                                            <StarToggle station={stationForFav} />
                                                         </button>
                                                     );
                                                 })}
@@ -719,6 +838,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                 } else {
                                     if (!dyn) return group.stations.map((station: any) => {
                                         const nameStr = typeof station.name === 'string' ? station.name : (language === 'TC' ? station.name.tc : station.name.en);
+                                        const stationForFav: Station = { id: station.id, name: nameStr, line: station.line, mode: currentTab as any };
                                         return (
                                             <button
                                                 type="button"
@@ -733,7 +853,8 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                                 style={{ width: '100%', padding: '0.75rem 1.15rem 0.75rem 2.45rem', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left', transition: 'background 0.2s', border: 'none', background: 'transparent', color: 'white', cursor: 'pointer' }}
                                             >
                                                 <div className="line-indicator" style={{ width: '6px', height: '6px', borderRadius: '50%', border: `1.5px solid ${group.color}` }}></div>
-                                                <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>{nameStr}</span>
+                                                <span style={{ fontSize: '0.95rem', fontWeight: 600, flex: 1 }}>{nameStr}</span>
+                                                <StarToggle station={stationForFav} />
                                             </button>
                                         );
                                     });
@@ -787,7 +908,8 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                                         style={{ width: '100%', padding: '0.6rem 1.15rem 0.6rem 2.45rem', minHeight: '40px', display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left', transition: 'background 0.2s', border: 'none', background: 'transparent', color: 'white', cursor: 'pointer' }}
                                                     >
                                                         <div className="line-indicator" style={{ width: '5px', height: '5px', borderRadius: '50%', border: `1.5px solid ${group.color}` }}></div>
-                                                        <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{nameStr}</span>
+                                                        <span style={{ fontSize: '0.9rem', fontWeight: 500, flex: 1 }}>{nameStr}</span>
+                                                        <StarToggle station={{ id: station.id, name: nameStr, mode: 'BUS' }} />
                                                     </button>
                                                 );
                                             })}
@@ -862,7 +984,8 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                                                 style={{ width: '100%', padding: '0.6rem 1.15rem 0.6rem 3.2rem', minHeight: '40px', display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left', transition: 'background 0.2s', border: 'none', background: 'transparent', color: 'white', cursor: 'pointer' }}
                                                             >
                                                                 <div className="line-indicator" style={{ width: '5px', height: '5px', borderRadius: '50%', border: `1.5px solid ${group.color}` }}></div>
-                                                                <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{nameStr}</span>
+                                                                <span style={{ fontSize: '0.9rem', fontWeight: 500, flex: 1 }}>{nameStr}</span>
+                                                                <StarToggle station={{ id: station.id, name: nameStr, mode: 'BUS' }} />
                                                             </button>
                                                         );
                                                     })}

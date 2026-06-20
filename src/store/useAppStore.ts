@@ -79,6 +79,7 @@ export const useAppStore = create<AppState>()(
                 language: state.language,
                 fontSize: state.fontSize,
                 favoriteStations: state.favoriteStations,
+                selectedStation: state.selectedStation,
             }),
         }
     )

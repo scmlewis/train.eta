@@ -15,9 +15,9 @@ vi.mock('@tanstack/react-query', () => ({
 import EtaDisplay from '../components/EtaDisplay';
 
 describe('EtaDisplay BUS empty response', () => {
-  it('shows No bus schedule when data is empty array', async () => {
+  it('shows No upcoming departures when data is empty array', async () => {
     render(<EtaDisplay stationId="506-D010" stationName="Siu Lun" line="506" />);
-    const el = await screen.findByText('No bus schedule');
+    const el = await screen.findByText('No upcoming departures');
     expect(el).toBeTruthy();
   });
 });

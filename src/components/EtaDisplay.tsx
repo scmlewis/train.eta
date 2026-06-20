@@ -4,6 +4,7 @@ import { fetchMTR, fetchLRT, fetchBus, extractBusRoute } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
 import EtaTable from './EtaTable';
 import type { ETA } from '../types/eta';
+import type { InterchangeLine } from '../utils/interchange';
 import { getStationName, getLineColor } from '../constants/mtrData';
 import { BUS_STOP_NAMES } from '../constants/busStopNames';
 import { QUERY_CONFIG } from '../constants/config';
@@ -51,11 +52,12 @@ function NoMatchCard({ lang }: { lang: 'en' | 'tc' }) {
     );
 }
 
-export default function EtaDisplay({ stationId, stationName, line, mode, onUpdateTime, onRegisterRefetch }: { stationId: string, stationName?: string, line?: string, mode?: string, onUpdateTime?: (t: string | null) => void, onRegisterRefetch?: (fn: () => void) => () => void }) {
+export default function EtaDisplay({ stationId, stationName, line, mode, interchangeLines, onUpdateTime, onRegisterRefetch }: { stationId: string, stationName?: string, line?: string, mode?: string, interchangeLines?: InterchangeLine[], onUpdateTime?: (t: string | null) => void, onRegisterRefetch?: (fn: () => void) => () => void }) {
     const { currentTab, language, selectedStation } = useAppStore();
     // When a nearby station is clicked from a different tab, use its own mode rather than currentTab
     const effectiveTab = (mode as typeof currentTab) ?? currentTab;
     const [selectedFilterIndex, setSelectedFilterIndex] = useState<number | null>(null);
+    const [activeLine, setActiveLine] = useState<string | null>(line || null);
     const lang = language.toLowerCase() as 'en' | 'tc';
     const refetchRef = useRef<(() => void) | null>(null);
     const onUpdateTimeRef = useRef(onUpdateTime);
@@ -76,16 +78,17 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
 
     // MTR translation is done client-side, so language does not affect the raw API response.
     // Exclude it from the key to avoid re-fetching (and losing filter state) on every language toggle.
+    const effectiveLine = activeLine || line;
     const queryKey = useMemo(() =>
         effectiveTab === 'MTR'
-            ? ['eta', 'MTR', stationId, line].filter(Boolean) as string[]
-            : ['eta', effectiveTab, stationId, line, language].filter(Boolean) as string[],
-    [effectiveTab, stationId, line, language]);
+            ? ['eta', 'MTR', stationId, effectiveLine].filter(Boolean) as string[]
+            : ['eta', effectiveTab, stationId, effectiveLine, language].filter(Boolean) as string[],
+    [effectiveTab, stationId, effectiveLine, language]);
 
     const { data, isLoading, isError, error, refetch, dataUpdatedAt } = useQuery<ETAData, Error>({
         queryKey,
         queryFn: () => {
-            if (effectiveTab === 'MTR' && line) return fetchMTR(line, stationId);
+            if (effectiveTab === 'MTR' && effectiveLine) return fetchMTR(effectiveLine, stationId);
             if (effectiveTab === 'LRT') return fetchLRT(stationId, language);
             if (effectiveTab === 'BUS') {
                 // Extract route name from bus stop ID (e.g. 'K65-D010' → 'K65')
@@ -202,18 +205,25 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
         if (effectiveTab === 'MTR' && isMTRData(data)) {
             // Show offline/no-service state more gracefully than a red error card
             if (data.offline) {
+                // Determine if it's likely before first train or after last train based on HK time
+                const now = new Date();
+                const hkHour = (now.getUTCHours() + 8) % 24; // HKT = UTC+8
+                const isEarlyMorning = hkHour >= 0 && hkHour < 6;
+                const message = isEarlyMorning
+                    ? (lang === 'tc' ? '港鐵服務尚未開始。首班車約於上午 06:00 開出。' : 'MTR service has not started yet. First trains depart around 06:00 AM.')
+                    : (lang === 'tc' ? '港鐵服務現已結束。明早首班車約於上午 06:00 開出。' : 'MTR service has ended for the day. First trains tomorrow depart around 06:00 AM.');
                 return (
                     <div className="glass-card animate-fade-in" style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
                         <div style={{ fontSize: '1.1rem', marginBottom: '0.3rem' }}>
                             {lang === 'tc' ? '🚇 服務暫停' : '🚇 Service Not Available'}
                         </div>
-                        <div style={{ fontSize: '0.85rem' }}>
-                            {lang === 'tc' ? '港鐵服務暫未開始' : 'MTR service is not currently in operation'}
+                        <div style={{ fontSize: '0.85rem', maxWidth: '260px', margin: '0 auto', lineHeight: '1.5' }}>
+                            {message}
                         </div>
                     </div>
                 );
             }
-            const currentColor = line ? getLineColor(line) : 'var(--mtr-color)';
+            const currentColor = effectiveLine ? getLineColor(effectiveLine) : 'var(--mtr-color)';
             const delayBanner = data.delayed ? (
                 <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '8px', padding: '0.5rem 0.85rem', marginBottom: '0.5rem', fontSize: '0.82rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     ⚠️ {lang === 'tc' ? '服務延誤' : 'Service delay in progress'}
@@ -316,6 +326,31 @@ export default function EtaDisplay({ stationId, stationName, line, mode, onUpdat
 
     return (
         <div style={{ marginTop: '0.15rem' }} className="animate-fade-in">
+            {/* Interchange line tabs */}
+            {interchangeLines && interchangeLines.length > 1 && (
+                <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.6rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '0.2rem' }}>
+                    {interchangeLines.map(il => {
+                        const isActive = activeLine === il.lineCode;
+                        return (
+                            <button
+                                key={il.lineCode}
+                                type="button"
+                                onClick={() => { setActiveLine(il.lineCode); setSelectedFilterIndex(null); }}
+                                style={{
+                                    padding: '0.4rem 0.85rem', borderRadius: '20px', border: 'none', cursor: 'pointer',
+                                    fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s',
+                                    background: isActive ? il.lineColor : 'rgba(255,255,255,0.06)',
+                                    color: isActive ? '#fff' : 'var(--text-muted)',
+                                    boxShadow: isActive ? `0 2px 8px ${il.lineColor}44` : 'none',
+                                }}
+                            >
+                                {il.lineName}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem', gap: '0.4rem' }}>
                 <div
                     className="filter-container"
