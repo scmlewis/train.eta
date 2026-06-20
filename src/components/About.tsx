@@ -1,3 +1,4 @@
+import { Github } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import type { FontSize } from '../store/useAppStore';
 
@@ -92,9 +93,38 @@ export default function About() {
             </p>
 
             <h3 style={{ marginBottom: '0.4rem' }}>{isTC ? '使用條款與免責' : 'Terms & Disclaimer'}</h3>
-            <p style={{ color: 'var(--text-muted)' }}>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
                 {isTC ? '本應用所提供資訊僅供參考，可能因資料來源延遲或變更而導致差異。開發者不對因使用本應用而產生的任何損失負責。' : 'Information provided is for reference only and may be affected by source delays or changes. The developer is not liable for any loss arising from use of this app.'}
             </p>
+
+            <div style={{
+                borderTop: '1px solid rgba(255,255,255,0.06)',
+                paddingTop: '1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+            }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    {isTC ? '開發者' : 'Developed by'} <strong style={{ color: 'var(--text-color)' }}>scmlewis</strong>
+                </span>
+                <a
+                    href="https://github.com/scmlewis/train.eta"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        fontSize: '0.85rem',
+                        color: 'var(--text-muted)',
+                        textDecoration: 'none',
+                        transition: 'color 0.15s',
+                    }}
+                >
+                    <Github size={16} />
+                    <span>GitHub</span>
+                </a>
+            </div>
         </div>
     );
 }
