@@ -4,6 +4,7 @@ import { MTR_LINE_GROUPS, LRT_GROUPS, BUS_GROUPS } from '../constants/transportD
 import { BUS_STOP_NAMES } from '../constants/busStopNames';
 import type { StationOption, TransportGroup } from '../constants/transportData';
 import { useAppStore } from '../store/useAppStore';
+import { useMTRLineStatus, type LineStatus } from '../hooks/useMTRLineStatus';
 import EtaDisplay from './EtaDisplay';
 import NearbyStations from './NearbyStations';
 import { fetchRouteStops, getStopName, collapseConsecutiveSameName } from '../services/busStops';
@@ -140,6 +141,9 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     const directionHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
     const cardRefs = useRef<Record<string, HTMLElement | null>>({});
 
+    // Poll line-wide MTR status only when on the MTR tab
+    const { statusMap: mtrLineStatus } = useMTRLineStatus(currentTab === 'MTR');
+
     useEffect(() => {
         // ensure CSS var for header height is set and kept in sync on resize
         setHeaderHeightVar();
@@ -188,6 +192,26 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         if (!name) return '';
         if (typeof name === 'string') return name;
         return language === 'TC' ? name.tc : name.en;
+    };
+
+    // Extract the MTR line code from a transport group (e.g. 'KTL' from the first station's line field)
+    const getLineCode = (group: any): string | null => {
+        if (group.stations?.length > 0 && group.stations[0].line) return group.stations[0].line;
+        return null;
+    };
+
+    const STATUS_COLORS: Record<LineStatus, string> = {
+        normal: '#22c55e',
+        delayed: '#f59e0b',
+        special: '#ef4444',
+        unknown: 'var(--text-muted)',
+    };
+
+    const STATUS_LABELS: Record<LineStatus, { en: string; tc: string }> = {
+        normal: { en: 'OK', tc: '正常' },
+        delayed: { en: 'Delay', tc: '延誤' },
+        special: { en: 'Alert', tc: '特別' },
+        unknown: { en: '—', tc: '—' },
     };
 
     const getGroups = () => {
@@ -774,7 +798,22 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <div className="line-indicator" style={{ width: '4px', height: '24px', borderRadius: '4px', background: group.color }}></div>
                             <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                <span style={{ fontSize: '1.05rem', fontWeight: 700 }}>{resolveName(group.groupName)}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ fontSize: '1.05rem', fontWeight: 700 }}>{resolveName(group.groupName)}</span>
+                                    {currentTab === 'MTR' && (() => {
+                                        const lineCode = getLineCode(group);
+                                        if (!lineCode) return null;
+                                        const entry = mtrLineStatus.get(lineCode);
+                                        const st = entry?.status ?? 'unknown';
+                                        if (st === 'normal') return null;
+                                        const label = STATUS_LABELS[st];
+                                        return (
+                                            <span className="line-status-badge" style={{ background: `${STATUS_COLORS[st]}22`, color: STATUS_COLORS[st], border: `1px solid ${STATUS_COLORS[st]}44`, fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '6px', lineHeight: '1.4', whiteSpace: 'nowrap' }}>
+                                                {language === 'TC' ? label.tc : label.en}
+                                            </span>
+                                        );
+                                    })()}
+                                </div>
                                 {group.desc && currentTab !== 'BUS' && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{resolveName(group.desc)}</span>}
                             </div>
                         </div>

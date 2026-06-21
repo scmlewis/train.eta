@@ -431,3 +431,23 @@ button,
     background: rgba(255, 255, 255, 0.12);
   }
 }
+
+/* ── Line status indicators ─────────────────────────────────────────────── */
+
+.line-status-badge {
+  display: inline-flex;
+  align-items: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.line-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  animation: statusFadeIn 0.3s ease;
+}
+
+@keyframes statusFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

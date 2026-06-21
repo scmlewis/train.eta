@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import { vi, expect, describe, it } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as matchers from '@testing-library/jest-dom/matchers';
 expect.extend(matchers);
 
@@ -19,23 +20,34 @@ vi.mock('../store/useAppStore', () => ({
     setSelectedStation: mockSetSelected,
     returnAnchorGroupKey: null,
     setReturnAnchorGroupKey: mockSetReturnAnchor,
+    favoriteStations: [],
+    toggleFavorite: vi.fn(),
     currentTab: _currentTab
   })
 }));
 
+vi.mock('../hooks/useMTRLineStatus', () => ({
+  useMTRLineStatus: () => ({ statusMap: new Map(), isLoading: false }),
+}));
+
 import StationList from '../components/StationPicker';
+
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+const renderWithQuery = (ui: React.ReactElement) =>
+  render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 
 describe('StationPicker component (tab switching and bus stops)', () => {
   it('renders MTR groups when currentTab is MTR', () => {
     _currentTab = 'MTR';
-    render(<StationList currentTab="MTR" />);
+    renderWithQuery(<StationList currentTab="MTR" />);
     // Kwun Tong Line exists in MTR_LINE_GROUPS
     expect(screen.getByText(/Kwun Tong Line/i)).toBeInTheDocument();
   });
 
   it('renders LRT groups when currentTab is LRT', () => {
     _currentTab = 'LRT';
-    render(<StationList currentTab="LRT" />);
+    renderWithQuery(<StationList currentTab="LRT" />);
     // Route 505 exists in LRT_GROUPS
     expect(screen.getByText('505')).toBeInTheDocument();
   });

@@ -13,6 +13,13 @@ export interface ETA {
 
 export type TransportMode = 'MTR' | 'LRT' | 'BUS';
 
+export interface MTRServiceStatus {
+    isDelayed: boolean;
+    isSpecial: boolean;
+    message?: string;
+    alertUrl?: string;
+}
+
 export interface Station {
     id: string; // e.g. "TUC" for MTR, "1" for LRT, routeName for Bus
     name: string; // English display name

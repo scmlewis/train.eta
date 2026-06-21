@@ -1,4 +1,4 @@
-import type { ETA } from '../types/eta';
+import type { ETA, MTRServiceStatus } from '../types/eta';
 import { API_ENDPOINTS } from '../constants/config';
 import type { RawMTRResponse, RawLRTResponse, RawBusResponse } from '../types/api';
 
@@ -41,14 +41,14 @@ const fetchWithTimeout = async (resource: string, options: RequestInit = {}) => 
 
 // Normalize Functions
 
-export type MTRResult = { up: ETA[], down: ETA[], offline?: boolean, delayed?: boolean, message?: string };
+export type MTRResult = { up: ETA[], down: ETA[], offline?: boolean, delayed?: boolean, message?: string, serviceStatus?: MTRServiceStatus };
 
 export function normalizeMTR(data: RawMTRResponse | any, stationCode: string, lineCode: string): MTRResult {
     try {
         // status=0 means service is not available (outside operating hours or disruption).
         // Handle this first so provider messages like "The contents are empty!" don't get mistaken for normal empty arrivals.
         if (data?.status === 0) {
-            return { up: [], down: [], offline: true, message: data.message || 'Service currently not available' };
+            return { up: [], down: [], offline: true, message: data.message || 'Service currently not available', serviceStatus: { isDelayed: false, isSpecial: true, message: data.message, alertUrl: data.url } };
         }
         // If API explicitly indicates empty contents for this station, treat as no arrivals rather than a hard error.
         if (data && data.message && String(data.message).toLowerCase().includes('empty')) {
@@ -88,7 +88,12 @@ export function normalizeMTR(data: RawMTRResponse | any, stationCode: string, li
         return {
             up: mapEtas(stationData.UP),
             down: mapEtas(stationData.DOWN),
-            ...(delayed && { delayed: true, message: data.message || 'Service delay reported' })
+            ...(delayed && { delayed: true, message: data.message || 'Service delay reported' }),
+            serviceStatus: {
+                isDelayed: delayed,
+                isSpecial: false,
+                message: data.message,
+            },
         };
     } catch (error) {
         console.error("MTR Normalization Error:", error);

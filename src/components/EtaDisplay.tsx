@@ -11,7 +11,7 @@ import { QUERY_CONFIG } from '../constants/config';
 import { Search } from 'lucide-react';
 
 // Type for API responses based on transport mode
-type MTRResponse = { up: ETA[], down: ETA[], offline?: boolean, delayed?: boolean, message?: string };
+type MTRResponse = { up: ETA[], down: ETA[], offline?: boolean, delayed?: boolean, message?: string, serviceStatus?: { isDelayed: boolean; isSpecial: boolean; message?: string; alertUrl?: string } };
 type LRTResponse = { platform: string, etas: ETA[] }[];
 type BusResponse = (ETA & { stopId: string })[];
 type ETAData = MTRResponse | LRTResponse | BusResponse;
@@ -209,24 +209,35 @@ export default function EtaDisplay({ stationId, stationName, line, mode, interch
                 const now = new Date();
                 const hkHour = (now.getUTCHours() + 8) % 24; // HKT = UTC+8
                 const isEarlyMorning = hkHour >= 0 && hkHour < 6;
-                const message = isEarlyMorning
-                    ? (lang === 'tc' ? '港鐵服務尚未開始。首班車約於上午 06:00 開出。' : 'MTR service has not started yet. First trains depart around 06:00 AM.')
-                    : (lang === 'tc' ? '港鐵服務現已結束。明早首班車約於上午 06:00 開出。' : 'MTR service has ended for the day. First trains tomorrow depart around 06:00 AM.');
+                const isSpecial = data.serviceStatus?.isSpecial && data.message;
+                const offlineMessage = isSpecial
+                    ? data.message!
+                    : isEarlyMorning
+                        ? (lang === 'tc' ? '港鐵服務尚未開始。首班車約於上午 06:00 開出。' : 'MTR service has not started yet. First trains depart around 06:00 AM.')
+                        : (lang === 'tc' ? '港鐵服務現已結束。明早首班車約於上午 06:00 開出。' : 'MTR service has ended for the day. First trains tomorrow depart around 06:00 AM.');
+                const alertUrl = data.serviceStatus?.alertUrl;
                 return (
                     <div className="glass-card animate-fade-in" style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
                         <div style={{ fontSize: '1.1rem', marginBottom: '0.3rem' }}>
-                            {lang === 'tc' ? '🚇 服務暫停' : '🚇 Service Not Available'}
+                            {isSpecial ? '🚨' : '🚇'} {isSpecial ? (lang === 'tc' ? '特別安排' : 'Special Arrangements') : (lang === 'tc' ? '服務暫停' : 'Service Not Available')}
                         </div>
-                        <div style={{ fontSize: '0.85rem', maxWidth: '260px', margin: '0 auto', lineHeight: '1.5' }}>
-                            {message}
+                        <div style={{ fontSize: '0.85rem', maxWidth: '280px', margin: '0 auto', lineHeight: '1.5' }}>
+                            {offlineMessage}
                         </div>
+                        {alertUrl && (
+                            <a href={alertUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '0.75rem', fontSize: '0.82rem', color: '#60a5fa', textDecoration: 'underline' }}>
+                                {lang === 'tc' ? '更多資訊' : 'More info'}
+                            </a>
+                        )}
                     </div>
                 );
             }
             const currentColor = effectiveLine ? getLineColor(effectiveLine) : 'var(--mtr-color)';
             const delayBanner = data.delayed ? (
-                <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '8px', padding: '0.5rem 0.85rem', marginBottom: '0.5rem', fontSize: '0.82rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    ⚠️ {lang === 'tc' ? '服務延誤' : 'Service delay in progress'}
+                <div className="line-status-banner delay" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '8px', padding: '0.5rem 0.85rem', marginBottom: '0.5rem', fontSize: '0.82rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>⚠️</span>
+                    <span>{lang === 'tc' ? '服務延誤' : 'Service delay in progress'}</span>
+                    {data.message && <span style={{ opacity: 0.8, marginLeft: '0.2rem' }}>— {data.message}</span>}
                 </div>
             ) : null;
             const selectedDest = selectedFilterIndex !== null ? destinations[selectedFilterIndex] : null;
