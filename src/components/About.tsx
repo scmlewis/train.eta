@@ -1,9 +1,34 @@
 import { useAppStore } from '../store/useAppStore';
+import { useMTRLineStatus } from '../hooks/useMTRLineStatus';
+import { MTR_LINE_COLORS } from '../constants/mtrData';
 import type { FontSize } from '../store/useAppStore';
+
+const MTR_LINE_NAMES: Record<string, { en: string; tc: string }> = {
+    TCL: { en: 'Tung Chung', tc: '東涌' },
+    TWL: { en: 'Tsuen Wan', tc: '荃灣' },
+    KTL: { en: 'Kwun Tong', tc: '觀塘' },
+    ISL: { en: 'Island', tc: '港島' },
+    SIL: { en: 'South Island', tc: '南港島' },
+    TKL: { en: 'Tseung Kwan O', tc: '將軍澳' },
+    EAL: { en: 'East Rail', tc: '東鐵' },
+    TML: { en: 'Tuen Ma', tc: '屯馬' },
+    DRL: { en: 'Disneyland Resort', tc: '迪士尼' },
+    AEL: { en: 'Airport Express', tc: '機場快綫' },
+};
+
+const MTR_LINE_ORDER = ['TWL', 'ISL', 'KTL', 'TML', 'TKL', 'TCL', 'EAL', 'SIL', 'AEL', 'DRL'];
+
+const STATUS_DOT_COLORS: Record<string, string> = {
+    normal: '#22c55e',
+    delayed: '#f59e0b',
+    special: '#ef4444',
+    unknown: '#64748b',
+};
 
 export default function About() {
     const { language, fontSize, setFontSize } = useAppStore();
     const isTC = language === 'TC';
+    const { statusMap, isLoading: statusLoading } = useMTRLineStatus();
 
     const fontSizeOptions: { value: FontSize; label: string; preview: string }[] = [
         { value: 'small', label: isTC ? '細' : 'S', preview: '14px' },
@@ -13,6 +38,49 @@ export default function About() {
 
     return (
         <div className="glass-card" style={{ padding: '1.25rem 1.25rem 1.5rem', lineHeight: 1.5 }}>
+            {/* MTR Line Status Overview */}
+            <h2 style={{ marginBottom: '0.6rem', fontSize: '1.15rem' }}>{isTC ? '港鐵線路狀態' : 'MTR Line Status'}</h2>
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                gap: '0.5rem',
+                marginBottom: '1.5rem',
+            }}>
+                {MTR_LINE_ORDER.map(line => {
+                    const entry = statusMap.get(line);
+                    const st = entry?.status ?? 'unknown';
+                    const dotColor = STATUS_DOT_COLORS[st] || STATUS_DOT_COLORS.unknown;
+                    const lineName = MTR_LINE_NAMES[line];
+                    const label = isTC ? lineName.tc : lineName.en;
+                    const lineColor = MTR_LINE_COLORS[line] || 'var(--text-muted)';
+                    return (
+                        <div key={line} style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            padding: '0.5rem 0.7rem', borderRadius: '8px',
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                        }}>
+                            <span style={{
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                background: dotColor, flexShrink: 0,
+                                boxShadow: statusLoading ? `0 0 4px ${dotColor}88` : 'none',
+                            }} />
+                            <span style={{
+                                fontSize: '0.8rem', fontWeight: 600,
+                                color: 'var(--text-color)',
+                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                            }}>{label}</span>
+                            <span style={{
+                                fontSize: '0.65rem', fontWeight: 700,
+                                color: lineColor, marginLeft: 'auto',
+                                opacity: 0.6,
+                            }}>{line}</span>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Settings */}
             <h2 style={{ marginBottom: '0.6rem', fontSize: '1.15rem' }}>{isTC ? '設定' : 'Settings'}</h2>
 
             {/* Font Size Setting */}
