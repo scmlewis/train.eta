@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useMemo } from 'react';
 import { fetchMTR, type MTRResult } from '../services/api';
 
 export type LineStatus = 'normal' | 'delayed' | 'special' | 'unknown';
@@ -68,13 +68,13 @@ export function useMTRLineStatus(enabled = true) {
         enabled,
     });
 
-    const statusMap = useCallback(() => {
+    const statusMap = useMemo(() => {
         if (!query.data) return new Map<string, MTRLineStatusEntry>();
         return new Map(query.data.map(e => [e.line, e]));
     }, [query.data]);
 
     return {
         ...query,
-        statusMap: statusMap(),
+        statusMap,
     };
 }

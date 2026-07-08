@@ -29,7 +29,7 @@ export function scrollToElement(el: HTMLElement | null, options?: { behavior?: S
     // Prefer scrollIntoView so CSS `scroll-margin-top` is honored for sticky headers
     try {
       el.scrollIntoView({ behavior, block: 'start' });
-    } catch (e) {
+    } catch {
       const headerH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-header-height')) || 0;
       const top = rect.top + window.scrollY - headerH - 8;
       try {

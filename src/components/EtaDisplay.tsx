@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMTR, fetchLRT, fetchBus, extractBusRoute } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
@@ -7,6 +7,7 @@ import type { ETA } from '../types/eta';
 import type { InterchangeLine } from '../utils/interchange';
 import { getStationName, getLineColor } from '../constants/mtrData';
 import { BUS_STOP_NAMES } from '../constants/busStopNames';
+import { normalizeStopId } from '../services/busStops';
 import { QUERY_CONFIG } from '../constants/config';
 import { Search } from 'lucide-react';
 
@@ -70,11 +71,11 @@ export default function EtaDisplay({ stationId, stationName, line, mode, interch
     }, [onUpdateTime, onRegisterRefetch]);
 
     // Helper function to resolve bilingual names
-    const resolveName = (name: Record<string, string> | string | undefined | null): string => {
+    const resolveName = useCallback((name: Record<string, string> | string | undefined | null): string => {
         if (!name) return '';
         if (typeof name === 'string') return name;
         return lang === 'tc' ? (name.tc || name.en || '') : (name.en || name.tc || '');
-    };
+    }, [lang]);
 
     // MTR translation is done client-side, so language does not affect the raw API response.
     // Exclude it from the key to avoid re-fetching (and losing filter state) on every language toggle.
@@ -154,7 +155,7 @@ export default function EtaDisplay({ stationId, stationName, line, mode, interch
         }
         // Last resort: use the passed-in stationName prop
         return stationName || '';
-    }, [selectedStation, effectiveTab, stationId, lang, stationName]);
+    }, [selectedStation, effectiveTab, stationId, lang, stationName, resolveName]);
 
     const destinations = useMemo(() => {
         if (!data) return [];
@@ -198,7 +199,6 @@ export default function EtaDisplay({ stationId, stationName, line, mode, interch
 
     const renderContent = () => {
         if (!data) {
-            console.warn('[EtaDisplay] No data received', { effectiveTab, stationId, line, data });
             return <div style={{ color: 'var(--text-muted)' }}>{t.noData}</div>;
         }
 
@@ -313,8 +313,6 @@ export default function EtaDisplay({ stationId, stationName, line, mode, interch
 
         if (effectiveTab === 'BUS' && isBusData(data)) {
             if (data.length === 0) return <div style={{ color: 'var(--text-muted)', marginTop: '0.4rem', textAlign: 'center' }}>{t.noTrains}</div>;
-
-            const normalizeStopId = (id?: string) => (String(id || '').replace(/-n(?=[A-Z0-9])/i, '-')).toUpperCase();
 
             const filteredBusEtas = data
                 .filter((eta) => normalizeStopId(eta.stopId) === normalizeStopId(stationId))

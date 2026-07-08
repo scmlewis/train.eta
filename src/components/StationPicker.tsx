@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ChevronDown, ChevronUp, RotateCw, Search, MapPin, Star } from 'lucide-react';
 import { MTR_LINE_GROUPS, LRT_GROUPS, BUS_GROUPS } from '../constants/transportData';
 import { BUS_STOP_NAMES } from '../constants/busStopNames';
@@ -7,20 +7,22 @@ import { useAppStore } from '../store/useAppStore';
 import { useMTRLineStatus, type LineStatus } from '../hooks/useMTRLineStatus';
 import EtaDisplay from './EtaDisplay';
 import NearbyStations from './NearbyStations';
-import { fetchRouteStops, getStopName, collapseConsecutiveSameName } from '../services/busStops';
+import { fetchRouteStops, getStopName, collapseConsecutiveSameName, isCircularRoute } from '../services/busStops';
 import { scrollToElement, scrollToTop, setHeaderHeightVar } from '../utils/scroll';
 import { findInterchangeLines } from '../utils/interchange';
 import type { Station } from '../types/eta';
-
-// Routes verified as circular from MTR HK website
-// For circular routes, all stops from all directions are merged and shown together
-const CIRCULAR_BUS_ROUTES = new Set(['K53', 'K54', 'K68', 'K74', 'K75P', 'K53S', 'K75S', 'K75A', 'K76', '506']);
 
 type BusDisplayGroup = TransportGroup & {
     routeCode?: string;
     directionCode?: string;
     isCircularRoute?: boolean;
 };
+
+interface DirectionInfo {
+    dir: string;
+    endpointEn: string;
+    endpointTc: string;
+}
 
 function buildBusDirectionGroups(baseGroups: TransportGroup[]): BusDisplayGroup[] {
     const sortedBase = [...baseGroups].sort((a, b) => {
@@ -49,18 +51,15 @@ function buildBusDirectionGroups(baseGroups: TransportGroup[]): BusDisplayGroup[
             stops.sort((a, b) => String(a.id).localeCompare(String(b.id)))
         );
 
-        const descText = typeof group.desc === 'string'
-            ? group.desc
-            : `${group.desc?.en || ''} ${group.desc?.tc || ''}`;
-        const isCircularRoute = CIRCULAR_BUS_ROUTES.has(routeCode) || /circular|循環/i.test(descText);
+        const isCircular = isCircularRoute(routeCode, group.desc);
 
         const dirs = Object.keys(byDir).sort();
         if (dirs.length === 0) {
-            output.push({ ...group, routeCode, isCircularRoute });
+            output.push({ ...group, routeCode, isCircularRoute: isCircular });
             continue;
         }
 
-        if (isCircularRoute) {
+        if (isCircular) {
             // For circular routes, show complete cycle with U direction first when available.
             const primaryDir = Object.keys(byDir).includes('U') ? 'U' : (Object.keys(byDir).includes('D') ? 'D' : Object.keys(byDir)[0]);
             const secondaryDir = Object.keys(byDir).find(d => d !== primaryDir) || primaryDir;
@@ -111,7 +110,8 @@ function buildBusDirectionGroups(baseGroups: TransportGroup[]): BusDisplayGroup[
 
         for (const dir of dirs) {
             const stops = byDir[dir];
-            const endpoint = (stops[stops.length - 1]?.name || { en: `Direction ${dir}`, tc: `方向 ${dir}` }) as any;
+            const nameObj = stops[stops.length - 1]?.name;
+            const endpoint = typeof nameObj === 'string' ? { en: nameObj, tc: nameObj } : (nameObj || { en: `Direction ${dir}`, tc: `方向 ${dir}` });
             output.push({
                 ...group,
                 routeCode,
@@ -135,7 +135,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
     const [stationLastUpdated, setStationLastUpdated] = useState<string | null>(null);
     const refetchersRef = useRef<Array<() => void>>([]);
-    const [dynamicStops, setDynamicStops] = useState<Record<string, { byDir?: Record<string, StationOption[]>, directionInfo?: Record<string, any>, stations?: StationOption[] }>>({});
+    const [dynamicStops, setDynamicStops] = useState<Record<string, { byDir?: Record<string, StationOption[]>, directionInfo?: Record<string, DirectionInfo>, stations?: StationOption[] }>>({});
     const [openDirections, setOpenDirections] = useState<Record<string, Set<string>>>({});
     const groupHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
     const directionHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -157,7 +157,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
 
     // FEATURE 1: Language-independent key for group state
     // Ensures expanded groups persist when switching languages
-    const getGroupKey = (groupName: any): string => {
+    const getGroupKey = (groupName: string | { en: string; tc: string }): string => {
         if (typeof groupName === 'string') return groupName;
         return JSON.stringify(groupName);
     };
@@ -188,14 +188,14 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentTab]);
 
-    const resolveName = (name: any) => {
+    const resolveName = useCallback((name: string | { en: string; tc: string } | undefined | null) => {
         if (!name) return '';
         if (typeof name === 'string') return name;
         return language === 'TC' ? name.tc : name.en;
-    };
+    }, [language]);
 
     // Extract the MTR line code from a transport group (e.g. 'KTL' from the first station's line field)
-    const getLineCode = (group: any): string | null => {
+    const getLineCode = (group: TransportGroup | BusDisplayGroup): string | null => {
         if (group.stations?.length > 0 && group.stations[0].line) return group.stations[0].line;
         return null;
     };
@@ -214,25 +214,23 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         unknown: { en: '—', tc: '—' },
     };
 
-    const getGroups = () => {
+    const groups = useMemo(() => {
         if (currentTab === 'MTR') return MTR_LINE_GROUPS;
         if (currentTab === 'LRT') return LRT_GROUPS;
         if (currentTab === 'BUS') {
             return buildBusDirectionGroups(BUS_GROUPS);
         }
         return [];
-    };
+    }, [currentTab]);
 
-    const groups = getGroups();
-
-    const getFilteredGroups = () => {
+    const filteredGroups = useMemo(() => {
         const query = searchQuery.toLowerCase().trim();
         if (!query) return groups;
 
-        return groups.map((g: any) => {
+        return groups.map((g: TransportGroup) => {
             return {
                 ...g,
-                stations: g.stations.filter((s: any) => {
+                stations: g.stations.filter((s: StationOption) => {
                     const name = s.name;
                     const matchesName = typeof name === 'string'
                         ? name.toLowerCase().includes(query)
@@ -240,10 +238,8 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                     return matchesName || s.id.toLowerCase().includes(query);
                 })
             };
-        }).filter((g: any) => g.stations.length > 0);
-    };
-
-    const filteredGroups = getFilteredGroups();
+        }).filter((g: TransportGroup) => g.stations.length > 0);
+    }, [groups, searchQuery]);
 
     useEffect(() => {
         if (!searchQuery.trim()) {
@@ -254,21 +250,19 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     useEffect(() => {
         if (!expandedGroup) return;
         if (currentTab !== 'BUS') return;
-        const grp = groups.find((g: any) => getGroupKey(g.groupName) === expandedGroup) as BusDisplayGroup | undefined;
+        const grp = groups.find((g: TransportGroup) => getGroupKey(g.groupName) === expandedGroup) as BusDisplayGroup | undefined;
         if (!grp) return;
         const routeKey = grp.routeCode || (typeof grp.groupName === 'string' ? grp.groupName : (grp.groupName.en || grp.groupName.tc || resolveName(grp.groupName)));
         const directionCode = grp.directionCode as string | undefined;
-        const isCircularRouteFromGroup = !!grp.isCircularRoute;
-        const groupDesc = grp.desc;
-        const descText = typeof groupDesc === 'string' ? groupDesc : `${groupDesc?.en || ''} ${groupDesc?.tc || ''}`;
-        const isCircularRoute = isCircularRouteFromGroup || CIRCULAR_BUS_ROUTES.has(routeKey) || /circular|循環/i.test(descText);
+        const isCircularFromGroup = !!grp.isCircularRoute;
+        const isCircular = isCircularFromGroup || isCircularRoute(routeKey, grp.desc);
         const storageKey = `${routeKey}:${directionCode || 'ALL'}`;
         if (dynamicStops[storageKey]) return;
 
         const buildStaticStops = () => {
             const prefix = routeKey + '-';
             const allByDir: Record<string, StationOption[]> = {};
-            const dirInfo: Record<string, any> = {};
+            const dirInfo: Record<string, DirectionInfo> = {};
 
             for (const [id, names] of Object.entries(BUS_STOP_NAMES)) {
                 if (!id.startsWith(prefix)) continue;
@@ -284,7 +278,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
             );
 
             // For circular routes, merge all stops preserving route sequence
-            if (isCircularRoute && !directionCode) {
+            if (isCircular && !directionCode) {
                 // Use U direction first for circular readability, then the other direction, then close loop.
                 const primaryDir = allByDir.U ? 'U' : (allByDir.D ? 'D' : (Object.keys(allByDir)[0] || 'D'));
                 const secondaryDir = Object.keys(allByDir).find(d => d !== primaryDir) || primaryDir;
@@ -315,7 +309,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
             } else {
                 for (const [dir, stops] of Object.entries(allByDir)) {
                     const lastStop = stops[stops.length - 1];
-                    const name = lastStop?.name as any;
+                    const name = lastStop?.name;
                     dirInfo[dir] = {
                         dir,
                         endpointEn: typeof name === 'string' ? name : (name?.en ?? `Direction ${dir}`),
@@ -340,7 +334,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         
         // For circular routes, the merged stops are already in byDir['merged']
         let staticStations: StationOption[] | undefined = undefined;
-        if (isCircularRoute && staticStops.byDir['merged']) {
+        if (isCircular && staticStops.byDir['merged']) {
             staticStations = staticStops.byDir['merged'];
         }
         
@@ -355,10 +349,10 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                 const allByDir: Record<string, StationOption[]> = Object.fromEntries(
                     Object.entries(staticStops.byDir).map(([dir, stops]) => [dir, [...stops]])
                 );
-                const dirInfo: Record<string, any> = {};
+                const dirInfo: Record<string, DirectionInfo> = {};
 
                 for (const [dir, payload] of Object.entries(live.byDir || {})) {
-                    const mappedStops = (payload.stops || []).map((s: any) => {
+                    const mappedStops = (payload.stops || []).map((s) => {
                         const name = BUS_STOP_NAMES[s.id] || { en: s.id, tc: s.id };
                         return { id: s.id, name } as StationOption;
                     });
@@ -376,14 +370,10 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                     allByDir[dir].sort((a, b) => String(a.id).localeCompare(String(b.id)));
                 }
 
-                const groupDesc = grp.desc;
-                const descText = typeof groupDesc === 'string'
-                    ? groupDesc
-                    : `${groupDesc?.en || ''} ${groupDesc?.tc || ''}`;
-                const isCircularRoute = isCircularRouteFromGroup || CIRCULAR_BUS_ROUTES.has(routeKey) || /circular|循環/i.test(descText);
+                const isCircularLive = isCircularFromGroup || isCircularRoute(routeKey, grp.desc);
                 
                 // For circular routes, merge all directions preserving route sequence
-                if (isCircularRoute && !directionCode) {
+                if (isCircularLive && !directionCode) {
                     // Determine primary direction - prefer U first for circular route readability.
                     const allLiveByDir = live.byDir || {};
                     const allStaticByDir = staticStops.byDir || {};
@@ -457,7 +447,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
 
                 for (const [dir, stops] of Object.entries(allByDir)) {
                     const lastStop = stops[stops.length - 1];
-                    const name = lastStop?.name as any;
+                    const name = lastStop?.name;
                     dirInfo[dir] = {
                         dir,
                         endpointEn: typeof name === 'string' ? name : (name?.en ?? `Direction ${dir}`),
@@ -465,7 +455,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                     };
                 }
 
-                setDynamicStops(prev => ({ ...prev, [storageKey]: { byDir: allByDir, directionInfo: dirInfo, stations: isCircularRoute && allByDir['merged'] ? allByDir['merged'] : undefined } }));
+                setDynamicStops(prev => ({ ...prev, [storageKey]: { byDir: allByDir, directionInfo: dirInfo, stations: isCircularLive && allByDir['merged'] ? allByDir['merged'] : undefined } }));
             } catch {
                 // keep static stops already shown
             }
@@ -474,7 +464,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         return () => {
             cancelled = true;
         };
-    }, [expandedGroup, currentTab, groups, dynamicStops, language]);
+    }, [expandedGroup, currentTab, groups, dynamicStops, language, resolveName]);
 
     useEffect(() => {
         setStationLastUpdated(null);
@@ -512,8 +502,8 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     }, []);
 
     // Resolve a station's display name respecting TC and the nameTc field (set by geolocation)
-    const resolveStationName = (station: any) => {
-        if (language === 'TC' && station.nameTc) return station.nameTc;
+    const resolveStationName = (station: Station | StationOption) => {
+        if (language === 'TC' && 'nameTc' in station && station.nameTc) return station.nameTc;
         return resolveName(station.name);
     };
 
@@ -543,7 +533,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     };
 
     if (selectedStation) {
-        const station = selectedStation as any;
+        const station = selectedStation;
         const interchangeLines = station.mode === 'MTR' ? findInterchangeLines(station.id) : [];
         return (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -553,7 +543,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                         {stationLastUpdated && <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>{(language === 'TC' ? '更新: ' : 'Last Updated: ')}{stationLastUpdated}</span>}
                         <button
                             className="refresh-btn"
-                            onClick={() => { refetchersRef.current.forEach(fn => { try { fn(); } catch (e) {} }); }}
+                            onClick={() => { refetchersRef.current.forEach(fn => { try { fn(); } catch (err) { console.error('Refetch failed:', err); } }); }}
                             style={{ width: '38px', height: '38px', borderRadius: '12px' }}
                         >
                             <RotateCw size={18} />
@@ -564,7 +554,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                     key={`${station.mode || currentTab}-${station.id}`}
                     stationId={station.id}
                     stationName={resolveStationName(station)}
-                    line={station.line || station.group}
+                    line={station.line}
                     mode={station.mode}
                     interchangeLines={interchangeLines}
                     onUpdateTime={setStationLastUpdated}
@@ -775,7 +765,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                 </div>
             )}
 
-            {filteredGroups.map((group: any) => (
+            {filteredGroups.map((group) => (
                 <div key={getGroupKey(group.groupName)} className="glass-card" ref={el => { if (el) cardRefs.current[getGroupKey(group.groupName)] = el; }} style={{ padding: 0, overflow: 'hidden', marginBottom: '0.4rem', border: expandedGroup === getGroupKey(group.groupName) ? '1px solid rgba(167, 139, 250, 0.2)' : '1px solid transparent' }}>
                     <button
                         className="accordion-header"
@@ -824,8 +814,9 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                         <div id={`group-${getGroupKey(group.groupName)}`} className="accordion-content" style={{ padding: '0.2rem 0', borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.1)', animation: 'slideDown 0.3s ease-out' }}>
                             {(() => {
                                 const key = typeof group.groupName === 'string' ? group.groupName : (group.groupName.en || group.groupName.tc || resolveName(group.groupName));
-                                const routeKey = (group as any).routeCode || key;
-                                const directionCode = (group as any).directionCode as string | undefined;
+                                const busGroup = 'routeCode' in group ? group as BusDisplayGroup : undefined;
+                                const routeKey = busGroup?.routeCode || key;
+                                const directionCode = busGroup?.directionCode;
                                 const dynamicKey = currentTab === 'BUS' ? `${routeKey}:${directionCode || 'ALL'}` : key;
                                 const dyn = dynamicStops[dynamicKey];
                                 
@@ -842,7 +833,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                     if (dyn.stations && dyn.stations.length > 0) {
                                         return (
                                             <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.2rem 0' }}>
-                                                {dyn.stations.map((station: any) => {
+                                                {dyn.stations.map((station) => {
                                                     const nameStr = typeof station.name === 'string' ? station.name : (language === 'TC' ? station.name.tc : station.name.en);
                                                     const stationForFav: Station = { id: station.id, name: nameStr, mode: 'BUS' };
                                                     return (
@@ -854,7 +845,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                                             className="station-row"
                                                             onClick={() => {
                                                                 setReturnAnchorGroupKey(getGroupKey(group.groupName));
-                                                                setSelectedStation({ ...station, mode: currentTab } as any);
+                                                                setSelectedStation({ id: station.id, name: nameStr, mode: 'BUS' });
                                                             }}
                                                             style={{ width: '100%', padding: '0.6rem 1.15rem 0.6rem 2.45rem', minHeight: '40px', display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left', transition: 'background 0.2s', border: 'none', background: 'transparent', color: 'white', cursor: 'pointer' }}
                                                         >
@@ -876,9 +867,9 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                         );
                                     }
                                 } else {
-                                    if (!dyn) return group.stations.map((station: any) => {
+                                    if (!dyn) return group.stations.map((station) => {
                                         const nameStr = typeof station.name === 'string' ? station.name : (language === 'TC' ? station.name.tc : station.name.en);
-                                        const stationForFav: Station = { id: station.id, name: nameStr, line: station.line, mode: currentTab as any };
+                                        const stationForFav: Station = { id: station.id, name: nameStr, line: station.line, mode: currentTab as Station['mode'] };
                                         return (
                                             <button
                                                 type="button"
@@ -888,7 +879,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                                 className="station-row"
                                                 onClick={() => {
                                                     setReturnAnchorGroupKey(getGroupKey(group.groupName));
-                                                    setSelectedStation({ ...station, mode: currentTab } as any);
+                                                    setSelectedStation({ id: station.id, name: nameStr, line: station.line, mode: currentTab as Station['mode'] });
                                                 }}
                                                 style={{ width: '100%', padding: '0.75rem 1.15rem 0.75rem 2.45rem', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left', transition: 'background 0.2s', border: 'none', background: 'transparent', color: 'white', cursor: 'pointer' }}
                                             >
@@ -904,20 +895,16 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                 if (currentTab === 'BUS' && dirKeys.length === 1) {
                                     const d = dirKeys[0];
                                     const dirStops = dyn.byDir![d];
-                                    const groupDesc = group.desc;
-                                    const descText = typeof groupDesc === 'string'
-                                        ? groupDesc
-                                        : `${groupDesc?.en || ''} ${groupDesc?.tc || ''}`;
-                                    const isCircularRoute = !!(group as any).isCircularRoute || CIRCULAR_BUS_ROUTES.has(routeKey) || /circular|循環/i.test(descText);
+                                    const isCircular = !!busGroup?.isCircularRoute || isCircularRoute(routeKey, group.desc);
 
-                                    const firstName = (() => { const n = dirStops?.[0]?.name as any; return typeof n === 'string' ? n : n?.en; })();
-                                    const lastName = (() => { const n = dirStops?.[dirStops.length - 1]?.name as any; return typeof n === 'string' ? n : n?.en; })();
+                                    const firstName = (() => { const n = dirStops?.[0]?.name; return typeof n === 'string' ? n : n?.en; })();
+                                    const lastName = (() => { const n = dirStops?.[dirStops.length - 1]?.name; return typeof n === 'string' ? n : n?.en; })();
                                     const isCircularDir = firstName === lastName;
-                                    const terminalStopId = (isCircularRoute || isCircularDir) ? null : dirStops[dirStops.length - 1]?.id;
+                                    const terminalStopId = (isCircular || isCircularDir) ? null : dirStops[dirStops.length - 1]?.id;
 
                                     return (
                                         <div key={`${getGroupKey(group.groupName)}-dir-${d}`} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.2rem 0' }}>
-                                            {dirStops?.map((station: any) => {
+                                            {dirStops?.map((station) => {
                                                 const nameStr = typeof station.name === 'string' ? station.name : (language === 'TC' ? station.name.tc : station.name.en);
                                                 const isTerminal = terminalStopId !== null && station.id === terminalStopId;
                                                 if (isTerminal) {
@@ -943,7 +930,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                                         className="station-row"
                                                             onClick={() => {
                                                                 setReturnAnchorGroupKey(getGroupKey(group.groupName));
-                                                                setSelectedStation({ ...station, mode: currentTab } as any);
+                                                                setSelectedStation({ id: station.id, name: nameStr, mode: 'BUS' });
                                                             }}
                                                         style={{ width: '100%', padding: '0.6rem 1.15rem 0.6rem 2.45rem', minHeight: '40px', display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left', transition: 'background 0.2s', border: 'none', background: 'transparent', color: 'white', cursor: 'pointer' }}
                                                     >
@@ -962,17 +949,13 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                     const endpointLabel = language === 'TC' ? (dirInfo?.endpointTc || `Direction ${d}`) : (dirInfo?.endpointEn || `Direction ${d}`);
                                     const isOpen = searchQuery.trim() ? true : (openDirections[key]?.has(d) || false);
 
-                                    const groupDesc = group.desc;
-                                    const descText = typeof groupDesc === 'string'
-                                        ? groupDesc
-                                        : `${groupDesc?.en || ''} ${groupDesc?.tc || ''}`;
-                                    const isCircularRoute = CIRCULAR_BUS_ROUTES.has(key) || /circular|循環/i.test(descText);
+                                    const isCircular = isCircularRoute(key, group.desc);
 
                                     const dirStops = dyn.byDir![d];
-                                    const firstName = (() => { const n = dirStops?.[0]?.name as any; return typeof n === 'string' ? n : n?.en; })();
-                                    const lastName  = (() => { const n = dirStops?.[dirStops.length - 1]?.name as any; return typeof n === 'string' ? n : n?.en; })();
+                                    const firstName = (() => { const n = dirStops?.[0]?.name; return typeof n === 'string' ? n : n?.en; })();
+                                    const lastName  = (() => { const n = dirStops?.[dirStops.length - 1]?.name; return typeof n === 'string' ? n : n?.en; })();
                                     const isCircularDir = firstName === lastName;
-                                    const terminalStopId = (isCircularRoute || isCircularDir) ? null : dirStops[dirStops.length - 1]?.id;
+                                    const terminalStopId = (isCircular || isCircularDir) ? null : dirStops[dirStops.length - 1]?.id;
 
                                     return (
                                         <div key={`${getGroupKey(group.groupName)}-dir-${d}`} style={{ margin: 0, overflow: 'hidden', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
@@ -993,7 +976,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                             </button>
                                             {isOpen && (
                                                 <div id={`stops-${key}-${d}`} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.2rem 0' }}>
-                                                    {dirStops?.map((station: any) => {
+                                                    {dirStops?.map((station) => {
                                                         const nameStr = typeof station.name === 'string' ? station.name : (language === 'TC' ? station.name.tc : station.name.en);
                                                         const isTerminal = terminalStopId !== null && station.id === terminalStopId;
                                                         if (isTerminal) {
@@ -1019,7 +1002,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                                                 className="station-row"
                                                                 onClick={() => {
                                                                     setReturnAnchorGroupKey(getGroupKey(group.groupName));
-                                                                    setSelectedStation({ ...station, mode: currentTab } as any);
+                                                                    setSelectedStation({ id: station.id, name: nameStr, mode: 'BUS' });
                                                                 }}
                                                                 style={{ width: '100%', padding: '0.6rem 1.15rem 0.6rem 3.2rem', minHeight: '40px', display: 'flex', alignItems: 'center', gap: '0.85rem', textAlign: 'left', transition: 'background 0.2s', border: 'none', background: 'transparent', color: 'white', cursor: 'pointer' }}
                                                             >

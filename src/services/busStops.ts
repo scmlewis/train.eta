@@ -1,5 +1,31 @@
 import type { StationOption } from '../constants/transportData';
 import { API_ENDPOINTS } from '../constants/config';
+import type { RawBusStop } from '../types/api';
+
+const API_TIMEOUT = 10000;
+
+interface FetchWithTimeoutOptions extends RequestInit {
+    timeout?: number;
+}
+
+const fetchWithTimeout = async (resource: string, options: FetchWithTimeoutOptions = {}) => {
+    const { timeout = API_TIMEOUT, ...fetchOptions } = options;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+        const response = await fetch(resource, {
+            ...fetchOptions,
+            signal: controller.signal,
+            mode: 'cors',
+            credentials: 'omit'
+        });
+        clearTimeout(id);
+        return response;
+    } catch (err) {
+        clearTimeout(id);
+        throw err;
+    }
+};
 
 function normalizeStopId(id?: string) {
     return String(id || '').replace(/-n(?=[A-Z0-9])/i, '-').toUpperCase();
@@ -27,14 +53,26 @@ function collapseConsecutiveSameName(stops: StationOption[]): StationOption[] {
     return result;
 }
 
+// Routes verified as circular from MTR HK website
+const CIRCULAR_BUS_ROUTES = new Set(['K53', 'K54', 'K68', 'K74', 'K75P', 'K53S', 'K75S', 'K75A', 'K76', '506']);
+
+/** Determines whether a bus route is a circular route based on route code and description. */
+export function isCircularRoute(routeCode: string, desc?: string | { en?: string; tc?: string }): boolean {
+    if (CIRCULAR_BUS_ROUTES.has(routeCode)) return true;
+    const descText = typeof desc === 'string'
+        ? desc
+        : `${desc?.en || ''} ${desc?.tc || ''}`;
+    return /circular|循環/i.test(descText);
+}
+
 export type DirectionStops = {
     dir: string | null;
-    stops: Array<{ id: string; seq: number | null; raw: any }>;
+    stops: Array<{ id: string; seq: number | null; raw: RawBusStop }>;
 };
 
 export async function fetchRouteStops(routeName: string, lang: 'EN' | 'TC' = 'EN') {
     const params = { language: lang === 'TC' ? 'zh' : 'en', routeName };
-    const res = await fetch(API_ENDPOINTS.BUS, {
+    const res = await fetchWithTimeout(API_ENDPOINTS.BUS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params)

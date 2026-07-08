@@ -213,7 +213,7 @@ describe('Geolocation Feature Integration Tests', () => {
             const { setSelectedStation } = useAppStore.getState();
             setSelectedStation(station);
 
-            let state = useAppStore.getState();
+            const state = useAppStore.getState();
             expect(state.selectedStation).toEqual(station);
         });
 

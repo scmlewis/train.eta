@@ -276,7 +276,7 @@ export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
 
     // API contract (revised Jan 2026): POST JSON payload to base endpoint
     try {
-        let response = await fetchWithTimeout(url, {
+        const response = await fetchWithTimeout(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(params)

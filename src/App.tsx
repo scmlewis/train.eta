@@ -8,17 +8,17 @@ import NearbyStationsSheet from './components/NearbyStationsSheet';
 import { useAppStore } from './store/useAppStore';
 import './App.css';
 
+const FONT_SIZE_MAP: Record<string, string> = {
+  small: '14px',
+  default: '16px',
+  large: '18px',
+};
+
 function App() {
   const { currentTab, fontSize } = useAppStore();
 
-  const fontSizeMap: Record<string, string> = {
-    small: '14px',
-    default: '16px',
-    large: '18px',
-  };
-
   useEffect(() => {
-    document.documentElement.style.fontSize = fontSizeMap[fontSize];
+    document.documentElement.style.fontSize = FONT_SIZE_MAP[fontSize];
   }, [fontSize]);
 
   const renderContent = () => {
