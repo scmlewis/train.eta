@@ -795,7 +795,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                                         if (!lineCode) return null;
                                         const entry = mtrLineStatus.get(lineCode);
                                         const st = entry?.status ?? 'unknown';
-                                        if (st === 'normal') return null;
+                                        if (st === 'normal' || st === 'unknown') return null;
                                         const label = STATUS_LABELS[st];
                                         return (
                                             <span className="line-status-badge" style={{ background: `${STATUS_COLORS[st]}22`, color: STATUS_COLORS[st], border: `1px solid ${STATUS_COLORS[st]}44`, fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '6px', lineHeight: '1.4', whiteSpace: 'nowrap' }}>
