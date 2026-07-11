@@ -79,7 +79,7 @@ export default function EtaTable({ title, etas, trackColor = 'var(--primary-colo
                                 const hasTtiMinutes = typeof eta.ttiMinutes === 'number' && eta.ttiMinutes > 0;
                                 // Truncate MTR full datetimes to HH:MM; undefined for relative strings
                                 const displayTime = toHHMM(eta.time);
-                                const timeToDisplay = displayTime ?? (hasTtiMinutes ? '-' : '--:--');
+                                const timeToDisplay = displayTime ?? '--:--';
                                 const routeColor = eta.routeNo ? getLineColor(eta.routeNo) : 'var(--text-color)';
                                 const isBus = eta.platform?.includes?.('-D') || eta.id?.startsWith?.('bus-');
                                 const isFirst = index === 0;
@@ -108,7 +108,7 @@ export default function EtaTable({ title, etas, trackColor = 'var(--primary-colo
                                             color: routeColor,
                                             textShadow: isFirst ? `0 0 20px ${routeColor}44` : 'none'
                                         }}>
-                                            {isBus ? (timeToDisplay === '-' ? '--:--' : timeToDisplay) : (eta.routeNo || timeToDisplay)}
+                                            {isBus ? timeToDisplay : (eta.routeNo || timeToDisplay)}
                                         </div>
                                         <div>
                                             {isBus ? (
