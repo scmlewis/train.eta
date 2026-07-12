@@ -6,6 +6,7 @@ import type { StationOption, TransportGroup } from '../constants/transportData';
 import { useAppStore } from '../store/useAppStore';
 import { useMTRLineStatus, type LineStatus } from '../hooks/useMTRLineStatus';
 import EtaDisplay from './EtaDisplay';
+import SEO from './SEO';
 import NearbyStations from './NearbyStations';
 import { fetchRouteStops, getStopName, collapseConsecutiveSameName, isCircularRoute } from '../services/busStops';
 import { scrollToElement, scrollToTop, setHeaderHeightVar } from '../utils/scroll';
@@ -535,8 +536,18 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     if (selectedStation) {
         const station = selectedStation;
         const interchangeLines = station.mode === 'MTR' ? findInterchangeLines(station.id) : [];
+        const stationName = resolveStationName(station);
+        const modeLabel = station.mode === 'MTR' ? 'MTR' : station.mode === 'LRT' ? 'Light Rail' : 'Bus';
+        const modeLabelTc = station.mode === 'MTR' ? '港鐵' : station.mode === 'LRT' ? '輕鐵' : '巴士';
+        const stationTitle = language === 'TC'
+            ? `${modeLabelTc}到站時間 — ${stationName}`
+            : `${modeLabel} Arrival Time — ${stationName}`;
+        const stationDesc = language === 'TC'
+            ? `實時查看${stationName}${modeLabelTc}到站時間。`
+            : `Live ${modeLabel} arrival times for ${stationName}.`;
         return (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <SEO title={stationTitle} description={stationDesc} />
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem', margin: '0.4rem 0' }}>
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>{resolveStationName(station)}</h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

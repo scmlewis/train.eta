@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
+import { HelmetProvider } from 'react-helmet-async';
 import Header from './components/Header';
 import BottomNav from './components/Tabs';
 import StationPicker from './components/StationPicker';
 import About from './components/About';
 import FloatingGeoButton from './components/FloatingGeoButton';
 import NearbyStationsSheet from './components/NearbyStationsSheet';
+import SEO from './components/SEO';
+import { TAB_SEO } from './config/seo';
 import { useAppStore } from './store/useAppStore';
 import './App.css';
 
@@ -15,11 +18,18 @@ const FONT_SIZE_MAP: Record<string, string> = {
 };
 
 function App() {
-  const { currentTab, fontSize } = useAppStore();
+  const { currentTab, fontSize, language } = useAppStore();
 
   useEffect(() => {
     document.documentElement.style.fontSize = FONT_SIZE_MAP[fontSize];
   }, [fontSize]);
+
+  useEffect(() => {
+    document.documentElement.lang = language === 'TC' ? 'zh-Hant' : 'en';
+  }, [language]);
+
+  const tabSeo = TAB_SEO[currentTab] ?? TAB_SEO.MTR;
+  const langKey = language === 'TC' ? 'tc' : 'en';
 
   const renderContent = () => {
     if (currentTab === 'SETTINGS') return <About />;
@@ -30,7 +40,8 @@ function App() {
   };
 
   return (
-    <>
+    <HelmetProvider>
+      <SEO title={tabSeo[langKey].title.replace(/ \| Train\.ETA$/, '')} description={tabSeo[langKey].description} />
       <Header />
       <main className="content">
         {renderContent()}
@@ -38,10 +49,8 @@ function App() {
       <FloatingGeoButton />
       <NearbyStationsSheet />
       <BottomNav />
-    </>
+    </HelmetProvider>
   )
 }
 
 export default App
-
-

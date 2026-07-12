@@ -20,14 +20,32 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'MTR ETA App',
-        short_name: 'TrainETA',
+        name: 'Train.ETA — Hong Kong Transit Arrival Times',
+        short_name: 'Train.ETA',
+        description: 'Live arrival times for Hong Kong MTR, Light Rail, and MTR Bus.',
         theme_color: '#1a1a1a',
         background_color: '#1a1a1a',
         display: 'standalone',
         scope: '/train.eta/',
         start_url: '/train.eta/',
-        icons: []
+        icons: [
+          {
+            src: '/train.eta/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: '/train.eta/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
+          {
+            src: '/train.eta/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+        ],
       },
       workbox: {
         skipWaiting: true,
