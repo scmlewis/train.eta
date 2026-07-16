@@ -10,6 +10,7 @@ import { BUS_STOP_NAMES } from '../constants/busStopNames';
 import { normalizeStopId } from '../services/busStops';
 import { QUERY_CONFIG } from '../constants/config';
 import { Search } from 'lucide-react';
+import EtaSkeleton from './Skeleton';
 
 // Type for API responses based on transport mode
 type MTRResponse = { up: ETA[], down: ETA[], offline?: boolean, delayed?: boolean, message?: string, serviceStatus?: { isDelayed: boolean; isSpecial: boolean; message?: string; alertUrl?: string } };
@@ -190,7 +191,7 @@ export default function EtaDisplay({ stationId, stationName, line, mode, interch
         lastUpdate: lang === 'tc' ? '更新: ' : 'Upd: '
     };
 
-    if (isLoading) return <div className="glass-card animate-fade-in" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>{t.loading}</div>;
+    if (isLoading) return <EtaSkeleton title={resolvedStationName} />;
     if (isError) return <div className="glass-card animate-fade-in" style={{ color: '#ef4444', textAlign: 'center', padding: '2rem' }}>
         <div style={{ marginBottom: '0.5rem', fontWeight: 600 }}>{lang === 'tc' ? '載入資料失敗' : 'Error loading data'}</div>
         <div style={{ fontSize: '0.85rem', color: '#ff6b6b' }}>{(error as Error).message}</div>

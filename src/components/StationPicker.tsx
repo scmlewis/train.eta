@@ -546,11 +546,12 @@ export default function StationList({ currentTab }: { currentTab: string }) {
             ? `實時查看${stationName}${modeLabelTc}到站時間。`
             : `Live ${modeLabel} arrival times for ${stationName}.`;
         return (
-            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div className="spring-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <SEO title={stationTitle} description={stationDesc} />
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem', margin: '0.4rem 0' }}>
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>{resolveStationName(station)}</h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span className="live-dot" aria-label={language === 'TC' ? '即時數據' : 'Live data'} title={language === 'TC' ? '即時數據' : 'Live data'} />
                         {stationLastUpdated && <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>{(language === 'TC' ? '更新: ' : 'Last Updated: ')}{stationLastUpdated}</span>}
                         <button
                             className="refresh-btn"
@@ -664,7 +665,7 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     }
 
     return (
-        <div role="listbox" className="accordion-list animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+        <div key={currentTab} role="listbox" className="accordion-list tab-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             {/* Nearby stations pinned section — filtered to current tab's mode only */}
             {nearbyStations && !searchQuery.trim() && (() => {
                 const isTransportTab = currentTab === 'MTR' || currentTab === 'LRT' || currentTab === 'BUS';
@@ -776,8 +777,8 @@ export default function StationList({ currentTab }: { currentTab: string }) {
                 </div>
             )}
 
-            {filteredGroups.map((group) => (
-                <div key={getGroupKey(group.groupName)} className="glass-card" ref={el => { if (el) cardRefs.current[getGroupKey(group.groupName)] = el; }} style={{ padding: 0, overflow: 'hidden', marginBottom: '0.4rem', border: expandedGroup === getGroupKey(group.groupName) ? '1px solid rgba(167, 139, 250, 0.2)' : '1px solid transparent' }}>
+            {filteredGroups.map((group, groupIndex) => (
+                <div key={getGroupKey(group.groupName)} className="glass-card stagger-item" ref={el => { if (el) cardRefs.current[getGroupKey(group.groupName)] = el; }} style={{ padding: 0, overflow: 'hidden', marginBottom: '0.4rem', border: expandedGroup === getGroupKey(group.groupName) ? '1px solid rgba(167, 139, 250, 0.2)' : '1px solid transparent', animationDelay: `${Math.min(groupIndex * 24, 300)}ms` }}>
                     <button
                         className="accordion-header"
                         ref={el => { if (el) groupHeaderRefs.current[getGroupKey(group.groupName)] = el; }}

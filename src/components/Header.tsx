@@ -36,6 +36,7 @@ export default function Header() {
                             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
                                 {tabTitles[currentTab] || currentTab}
                             </span>
+                            <span className="live-dot" aria-label={isTC ? '即時數據' : 'Live data'} title={isTC ? '即時數據' : 'Live data'} style={{ marginLeft: '0.35rem' }} />
                         </>
                     )}
                 </div>
