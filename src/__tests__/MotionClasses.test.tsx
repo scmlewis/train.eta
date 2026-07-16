@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { vi, expect, describe, it } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as matchers from '@testing-library/jest-dom/matchers';
@@ -9,7 +9,7 @@ expect.extend(matchers);
 const mockSetSelected = vi.fn();
 const mockSetSearch = vi.fn();
 let _currentTab = 'MTR';
-let _selectedStation = null;
+let _selectedStation: null | Record<string, unknown> = null;
 
 vi.mock('../store/useAppStore', () => ({
   useAppStore: () => ({
