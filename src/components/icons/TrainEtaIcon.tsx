@@ -1,0 +1,17 @@
+export default function TrainEtaIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 32 32"
+            width={size}
+            height={size}
+            fill="none"
+            className={className}
+            aria-hidden="true"
+        >
+            <path d="M6 3 L11.5 25 L14 24 L8.5 3 Z" fill="#3b82f6" />
+            <path d="M26 3 L20.5 25 L18 24 L23.5 3 Z" fill="#3b82f6" />
+            <circle cx="16" cy="28" r="2.5" fill="#3b82f6" />
+        </svg>
+    );
+}

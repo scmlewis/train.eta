@@ -45,6 +45,9 @@ body {
   font-weight: 700;
   color: var(--text-color);
   letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 /* Bottom Nav - Floating Capsule */

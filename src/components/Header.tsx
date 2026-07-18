@@ -1,5 +1,6 @@
 import { Search, ChevronLeft } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import TrainEtaIcon from './icons/TrainEtaIcon';
 
 export default function Header() {
     const { language, setLanguage, currentTab, setSearchQuery, searchQuery, selectedStation, setSelectedStation } = useAppStore();
@@ -28,7 +29,7 @@ export default function Header() {
                             <span>{isTC ? '返回' : 'Back'}</span>
                         </button>
                     ) : (
-                        <h1 className="logo-text">Train.ETA</h1>
+                        <h1 className="logo-text"><TrainEtaIcon size={22} />Train.ETA</h1>
                     )}
                     {!selectedStation && (
                         <>
