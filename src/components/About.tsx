@@ -164,6 +164,39 @@ export default function About() {
                 {isTC ? '本應用所提供資訊僅供參考，可能因資料來源延遲或變更而導致差異。開發者不對因使用本應用而產生的任何損失負責。' : 'Information provided is for reference only and may be affected by source delays or changes. The developer is not liable for any loss arising from use of this app.'}
             </p>
 
+            {/* Quick Links */}
+            <h3 style={{ marginBottom: '0.4rem' }}>{isTC ? '快速連結' : 'Quick Links'}</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem' }}>
+                {[
+                    { href: 'https://www.mtr.com.hk/en/customer/main/index.html', labelEn: 'MTR Service Status', labelTc: '港鐵服務狀況' },
+                    { href: 'https://www.mtr.com.hk/en/network/station-map.html', labelEn: 'MTR Route Map', labelTc: '港鐵路綫圖' },
+                    { href: 'https://www.mtr.com.hk/en/fares/index.html', labelEn: 'MTR Fare Information', labelTc: '港鐵票價資料' },
+                ].map(link => (
+                    <a
+                        key={link.href}
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                            color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem',
+                            fontWeight: 500, padding: '0.5rem 0.7rem', borderRadius: '8px',
+                            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',
+                            transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-color)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                        <span>{isTC ? link.labelTc : link.labelEn}</span>
+                    </a>
+                ))}
+            </div>
+
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '1.25rem 0 0', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 {[
                     { href: 'https://github.com/scmlewis', label: 'scmlewis' },
