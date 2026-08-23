@@ -2,6 +2,12 @@
 
 A lightweight progressive web app providing near-real-time arrival information for MTR, Light Rail, and selected bus routes in Hong Kong. Built for commuters who need fast, reliable ETAs on the go.
 
+---
+
+## Why this exists
+
+Commuters shouldn't have to open three apps to know when the next train leaves. Train.ETA aggregates live MTR, Light Rail and MTR Bus ETAs with nearby stations in one place.
+
 ## Features
 
 - **MTR / Light Rail / Bus ETAs** — live arrival times with platform and destination info
@@ -63,3 +69,8 @@ MIT
 ## Contributing
 
 Open an issue or submit a pull request — contributions welcome.
+
+**▶ Live demo:** https://scmlewis.github.io/train.eta/
+---
+
+If this saved you time or gave you an idea, a ⭐ on the repo is appreciated — it helps others find it.
