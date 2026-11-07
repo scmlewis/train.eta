@@ -1,12 +1,14 @@
 import type { ETA, MTRServiceStatus } from '../types/eta';
 import { API_ENDPOINTS } from '../constants/config';
-import type { RawMTRResponse, RawLRTResponse, RawBusResponse } from '../types/api';
+import type { RawMTRResponse, RawMTRTrain, RawLRTResponse, RawLRTPlatform, RawLRTRoute, RawBusResponse, RawBusStop, RawBusEntry } from '../types/api';
 
 const API_TIMEOUT = 10000;
 
 const LEGACY_MTR_STATION_ALIASES: Record<string, string> = {
     PEK: 'PRE',
-    SAW: 'SWH'
+    SAW: 'SWH',
+    LUM: 'LOP',
+    SHF: 'SHM'
 };
 
 /**
@@ -20,13 +22,23 @@ export function extractBusRoute(stationId: string, lineProp?: string): string {
     return dashIdx !== -1 ? stationId.slice(0, dashIdx) : stationId;
 }
 
-const fetchWithTimeout = async (resource: string, options: RequestInit = {}) => {
-    const { timeout = API_TIMEOUT } = options as any;
+function errorMessage(err: unknown, fallback = 'Unknown error'): string {
+    if (err instanceof Error && err.message) return err.message;
+    if (typeof err === 'string' && err) return err;
+    return fallback;
+}
+
+interface FetchWithTimeoutOptions extends RequestInit {
+    timeout?: number;
+}
+
+const fetchWithTimeout = async (resource: string, options: FetchWithTimeoutOptions = {}) => {
+    const { timeout = API_TIMEOUT, ...fetchOptions } = options;
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {
         const response = await fetch(resource, {
-            ...options,
+            ...fetchOptions,
             signal: controller.signal,
             mode: 'cors',
             credentials: 'omit'
@@ -41,14 +53,35 @@ const fetchWithTimeout = async (resource: string, options: RequestInit = {}) => 
 
 // Normalize Functions
 
-export type MTRResult = { up: ETA[], down: ETA[], offline?: boolean, delayed?: boolean, message?: string, serviceStatus?: MTRServiceStatus };
+export type MTRResult = { up: ETA[], down: ETA[], offline?: boolean, noData?: boolean, delayed?: boolean, message?: string, serviceStatus?: MTRServiceStatus };
 
-export function normalizeMTR(data: RawMTRResponse | any, stationCode: string, lineCode: string): MTRResult {
+// Provider messages that mean "there is simply no data right now" (outside
+// service hours, or a station with no scheduled trains) rather than a disruption.
+const GENERIC_EMPTY_MESSAGE = /contents are empty|no data|no service|not available/i;
+
+export function normalizeMTR(data: RawMTRResponse, stationCode: string, lineCode: string): MTRResult {
     try {
-        // status=0 means service is not available (outside operating hours or disruption).
-        // Handle this first so provider messages like "The contents are empty!" don't get mistaken for normal empty arrivals.
+        // status=0 means no data is currently available: outside operating hours,
+        // between services, or (rarely) a genuine disruption. Distinguish the two so
+        // the provider's generic "The contents are empty!" is not shown as an alert.
         if (data?.status === 0) {
-            return { up: [], down: [], offline: true, message: data.message || 'Service currently not available', serviceStatus: { isDelayed: false, isSpecial: true, message: data.message, alertUrl: data.url } };
+            const rawMessage = typeof data.message === 'string' ? data.message.trim() : '';
+            const alertUrl = typeof data.url === 'string' && data.url.trim() ? data.url.trim() : undefined;
+            const isGenericEmpty = !rawMessage || GENERIC_EMPTY_MESSAGE.test(rawMessage);
+            const isSpecial = Boolean(alertUrl) || !isGenericEmpty;
+            return {
+                up: [],
+                down: [],
+                offline: true,
+                ...(isSpecial ? {} : { noData: true }),
+                ...(isSpecial ? { message: rawMessage } : {}),
+                serviceStatus: {
+                    isDelayed: data.isdelay === 'Y',
+                    isSpecial,
+                    message: isSpecial ? rawMessage : undefined,
+                    alertUrl,
+                },
+            };
         }
         // If API explicitly indicates empty contents for this station, treat as no arrivals rather than a hard error.
         if (data && data.message && String(data.message).toLowerCase().includes('empty')) {
@@ -77,12 +110,12 @@ export function normalizeMTR(data: RawMTRResponse | any, stationCode: string, li
             return { up: [], down: [] };
         }
 
-        const mapEtas = (list: any[] = []) => list.map((item, idx) => ({
+        const mapEtas = (list: RawMTRTrain[] = []) => list.map((item, idx) => ({
             id: `mtr-${item.seq}-${idx}`,
-            destination: item.dest,
-            time: item.time,
+            destination: item.dest ?? '',
+            time: item.time ?? '',
             platform: item.plat,
-            tti: `${item.ttnt} min`
+            tti: item.ttnt ? `${item.ttnt} min` : undefined
         }));
 
         return {
@@ -101,15 +134,15 @@ export function normalizeMTR(data: RawMTRResponse | any, stationCode: string, li
     }
 }
 
-export function normalizeLRT(data: RawLRTResponse | any, lang: 'EN' | 'TC' = 'EN'): { platform: string, etas: ETA[] }[]  {
+export function normalizeLRT(data: RawLRTResponse, lang: 'EN' | 'TC' = 'EN'): { platform: string, etas: ETA[] }[]  {
     try {
         if (!data.platform_list || data.platform_list.length === 0) return [];
 
         const isTC = lang === 'TC';
         const systemTime = data.system_time as string | undefined;
 
-        return data.platform_list.map((plat: any) => {
-            const etas = (plat.route_list || []).map((route: any, idx: number) => {
+        return data.platform_list.map((plat: RawLRTPlatform) => {
+            const etas = (plat.route_list || []).map((route: RawLRTRoute, idx: number) => {
                 const rawTime = isTC ? route.time_ch : route.time_en;
                 // Parse time/status information from provider. We will:
                 // - keep `tti` as the raw string for debugging
@@ -195,18 +228,18 @@ export function normalizeLRT(data: RawLRTResponse | any, lang: 'EN' | 'TC' = 'EN
     }
 }
 
-export function normalizeBus(data: RawBusResponse | any, lang: 'EN' | 'TC' = 'EN'): (ETA & { stopId: string })[] {
+export function normalizeBus(data: RawBusResponse, lang: 'EN' | 'TC' = 'EN'): (ETA & { stopId: string })[] {
     try {
         if (!data || !data.busStop) return [];
         let allBusEtas: (ETA & { stopId: string })[] = [];
         const now = new Date();
         const isTC = lang === 'TC';
 
-        data.busStop.forEach((stop: any) => {
+        data.busStop.forEach((stop: RawBusStop) => {
             if (stop.bus && Array.isArray(stop.bus)) {
-                allBusEtas = [...allBusEtas, ...stop.bus.map((b: any, idx: number) => {
+                allBusEtas = [...allBusEtas, ...stop.bus.map((b: RawBusEntry, idx: number) => {
                     // Clamp to 0 so overdue/negative values don't produce a past absolute time.
-                    const departureSecs = Math.max(0, parseInt(b.departureTimeInSecond) || 0);
+                    const departureSecs = Math.max(0, parseInt(String(b.departureTimeInSecond), 10) || 0);
                     const arrivalDate = new Date(now.getTime() + departureSecs * 1000);
                     const absTime = arrivalDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 
@@ -217,11 +250,11 @@ export function normalizeBus(data: RawBusResponse | any, lang: 'EN' | 'TC' = 'EN
 
                     return {
                         id: `bus-${stop.busStopId}-${b.busId || idx}`,
-                        destination: destination,
+                        destination: destination ?? '',
                         time: absTime,
                         tti: b.departureTimeText?.replace(' minutes', ' min').replace(' Minute', ' min').replace(' 分鐘', isTC ? ' 分鐘' : ' min'),
                         platform: stop.busStopId,
-                        stopId: stop.busStopId,
+                        stopId: stop.busStopId ?? '',
                         isScheduled: b.isScheduled === '1'
                     };
                 })];
@@ -246,9 +279,9 @@ export const fetchMTR = async (line: string, station: string) => {
         }
         const data = await response.json();
         return normalizeMTR(data, normalizedStation, line);
-    } catch (err: any) {
+    } catch (err) {
         console.error('MTR fetch error:', err);
-        throw new Error(`Failed to fetch MTR data: ${err.message || 'Unknown error'}`);
+        throw new Error(`Failed to fetch MTR data: ${errorMessage(err)}`);
     }
 };
 
@@ -262,9 +295,9 @@ export const fetchLRT = async (stationId: string, lang: 'EN' | 'TC' = 'EN') => {
         }
         const data = await response.json();
         return normalizeLRT(data, lang);
-    } catch (err: any) {
+    } catch (err) {
         console.error('LRT fetch error:', err);
-        throw new Error(`Failed to fetch LRT data: ${err.message || 'Unknown error'}`);
+        throw new Error(`Failed to fetch LRT data: ${errorMessage(err)}`);
     }
 };
 
@@ -294,8 +327,8 @@ export const fetchBus = async (route: string, lang: 'EN' | 'TC' = 'EN') => {
             const txt = await response.text().catch(() => '<no body>');
             lastErrMsg = `POST status ${response.status}: ${txt.slice(0,100)}`;
         }
-    } catch (err: any) {
-        lastErrMsg = `POST request error: ${err && err.message}`;
+    } catch (err) {
+        lastErrMsg = `POST request error: ${errorMessage(err)}`;
     }
 
     throw new Error(`Failed to fetch Bus data (${lastErrMsg || 'unknown error'})`);

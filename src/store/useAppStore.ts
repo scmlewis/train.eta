@@ -7,6 +7,43 @@ export type TabId = TransportMode | 'FAV' | 'SETTINGS';
 
 export type FontSize = 'small' | 'default' | 'large';
 
+/** Bump whenever persisted state needs a migration. */
+export const PERSIST_VERSION = 2;
+
+// Station codes that were replaced in the MTR feed. Persisted favourites and the
+// last selected station may still carry the old ids, so map them on rehydrate.
+const RETIRED_MTR_STATION_IDS: Record<string, string> = {
+    LUM: 'LOP',
+    SHF: 'SHM',
+};
+
+function migrateStation(station: Station | null | undefined): Station | null | undefined {
+    if (!station) return station;
+    const newId = RETIRED_MTR_STATION_IDS[station.id];
+    return newId ? { ...station, id: newId } : station;
+}
+
+/** Maps persisted state written by an older app version onto the current schema. */
+export function migratePersistedState(persistedState: unknown): unknown {
+    if (!persistedState || typeof persistedState !== 'object') return persistedState;
+
+    const state = persistedState as Record<string, unknown>;
+    const next: Record<string, unknown> = { ...state };
+
+    if ('selectedStation' in state) {
+        const migrated = migrateStation(state.selectedStation as Station | null | undefined);
+        next.selectedStation = migrated ?? null;
+    }
+
+    if (Array.isArray(state.favoriteStations)) {
+        next.favoriteStations = state.favoriteStations
+            .map(s => migrateStation(s as Station))
+            .filter((s): s is Station => Boolean(s));
+    }
+
+    return next;
+}
+
 interface AppState {
     currentTab: TabId;
     language: 'EN' | 'TC';
@@ -73,6 +110,8 @@ export const useAppStore = create<AppState>()(
         }),
         {
             name: 'train-eta-storage',
+            version: PERSIST_VERSION,
+            migrate: (persistedState) => migratePersistedState(persistedState) as AppState,
             // Only persist user preferences and favourites — not ephemeral location state
             partialize: (state) => ({
                 currentTab: state.currentTab,

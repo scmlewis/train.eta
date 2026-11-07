@@ -150,6 +150,32 @@ describe('normalizeMTR valid field handling', () => {
     expect(result.up).toHaveLength(0);
     expect(result.down).toHaveLength(0);
   });
+
+  it('does not report status=0 "The contents are empty!" as a special arrangement', () => {
+    const fakeData = {
+      status: 0,
+      message: 'The contents are empty!'
+    };
+
+    const result = normalizeMTR(fakeData, 'SWH', 'ISL');
+    expect(result.offline).toBe(true);
+    expect(result.noData).toBe(true);
+    expect(result.serviceStatus?.isSpecial).toBe(false);
+    expect(result.message).toBeUndefined();
+  });
+
+  it('keeps a genuine status=0 alert marked as special', () => {
+    const fakeData = {
+      status: 0,
+      message: 'Typhoon signal no. 8 is in force',
+      url: 'https://www.mtr.com.hk/alert'
+    };
+
+    const result = normalizeMTR(fakeData, 'SWH', 'ISL');
+    expect(result.noData).toBeFalsy();
+    expect(result.serviceStatus?.isSpecial).toBe(true);
+    expect(result.message).toMatch(/Typhoon/);
+  });
 });
 
 describe('fetchBus API contract', () => {
@@ -201,5 +227,23 @@ describe('fetchMTR legacy station aliases', () => {
     const [url] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('line=KTL');
     expect(String(url)).toContain('sta=PRE');
+  });
+
+  it('maps retired TML codes LUM/SHF to LOP/SHM when calling API', async () => {
+    const payload = { status: 1, isdelay: 'N', data: {} };
+    const fetchMock = vi.fn().mockImplementation(() =>
+      Promise.resolve(new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }))
+    );
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    await fetchMTR('TML', 'LUM');
+    await fetchMTR('TML', 'SHF');
+
+    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    expect(urls[0]).toContain('sta=LOP');
+    expect(urls[1]).toContain('sta=SHM');
   });
 });

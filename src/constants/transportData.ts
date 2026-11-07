@@ -168,7 +168,7 @@ export const MTR_LINE_GROUPS: TransportGroup[] = [
             { id: 'TUM', name: getMTRName('TUM'), line: 'TML' },
             { id: 'SIH', name: getMTRName('SIH'), line: 'TML' },
             { id: 'TIS', name: getMTRName('TIS'), line: 'TML' },
-            { id: 'LUM', name: getMTRName('LUM'), line: 'TML' },
+            { id: 'LOP', name: getMTRName('LOP'), line: 'TML' },
             { id: 'YUL', name: getMTRName('YUL'), line: 'TML' },
             { id: 'KSR', name: getMTRName('KSR'), line: 'TML' },
             { id: 'TWW', name: getMTRName('TWW'), line: 'TML' },
@@ -179,6 +179,7 @@ export const MTR_LINE_GROUPS: TransportGroup[] = [
             { id: 'HUH', name: getMTRName('HUH'), line: 'TML' },
             { id: 'HOM', name: getMTRName('HOM'), line: 'TML' },
             { id: 'TKW', name: getMTRName('TKW'), line: 'TML' },
+            { id: 'SUW', name: getMTRName('SUW'), line: 'TML' },
             { id: 'KAT', name: getMTRName('KAT'), line: 'TML' },
             { id: 'DIH', name: getMTRName('DIH'), line: 'TML' },
             { id: 'HIK', name: getMTRName('HIK'), line: 'TML' },
@@ -186,7 +187,7 @@ export const MTR_LINE_GROUPS: TransportGroup[] = [
             { id: 'CKT', name: getMTRName('CKT'), line: 'TML' },
             { id: 'STW', name: getMTRName('STW'), line: 'TML' },
             { id: 'CIO', name: getMTRName('CIO'), line: 'TML' },
-            { id: 'SHF', name: getMTRName('SHF'), line: 'TML' },
+            { id: 'SHM', name: getMTRName('SHM'), line: 'TML' },
             { id: 'HEO', name: getMTRName('HEO'), line: 'TML' },
             { id: 'WKS', name: getMTRName('WKS'), line: 'TML' }
         ]

@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest",
+    "test:run": "vitest run",
+    "check:mtr-api": "vitest run --mode live src/__tests__/mtrLiveApi.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -43,12 +45,5 @@
     "vite": "^7.3.1",
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^1.0.0"
-  },
-  "vitest": {
-    "environment": "jsdom",
-    "setupFiles": [
-      "src/vitest.setup.ts"
-    ],
-    "globals": true
   }
 }

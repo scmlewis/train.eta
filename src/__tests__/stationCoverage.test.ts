@@ -10,6 +10,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { MTR_LINE_GROUPS, LRT_GROUPS, BUS_GROUPS } from '../constants/transportData';
+import { MTR_STATION_COORDS } from '../constants/stationCoords';
 import { MTR_STATIONS, MTR_LINE_COLORS } from '../constants/mtrData';
 import { BUS_STOP_NAMES } from '../constants/busStopNames';
 import { normalizeMTR, normalizeLRT } from '../services/api';
@@ -75,6 +76,29 @@ describe('MTR station coverage', () => {
         expect(missing).toHaveLength(0);
     });
 
+    it('every MTR station has coordinates for nearby lookups', () => {
+        const missing = stations
+            .filter(({ id }) => !MTR_STATION_COORDS[id])
+            .map(({ groupName, id }) => `${groupName}: ${id}`);
+
+        if (missing.length > 0) {
+            throw new Error(
+                `${missing.length} MTR stations have no coordinates (they will never appear in nearby results):\n` +
+                missing.map(m => `  - ${m}`).join('\n')
+            );
+        }
+        expect(missing).toHaveLength(0);
+    });
+
+    it('coordinates use current station codes, not retired aliases', () => {
+        // Retired codes must not linger as orphaned keys after the TML rename.
+        expect(MTR_STATION_COORDS.LUM).toBeUndefined();
+        expect(MTR_STATION_COORDS.SHF).toBeUndefined();
+        expect(MTR_STATION_COORDS.LOP).toBeDefined();
+        expect(MTR_STATION_COORDS.SHM).toBeDefined();
+        expect(MTR_STATION_COORDS.SUW).toBeDefined();
+    });
+
     it('Prince Edward is present on both KTL and TWL groups', () => {
         const ktlGroup = MTR_LINE_GROUPS.find(g =>
             (typeof g.groupName === 'object' ? g.groupName.en : g.groupName) === 'Kwun Tong Line'
@@ -100,6 +124,26 @@ describe('MTR station coverage', () => {
         expect(ealGroup).toBeDefined();
         expect(ealGroup!.stations.some(s => s.id === 'MKK')).toBe(true);
         expect(ealGroup!.stations.some(s => s.id === 'MOK')).toBe(false);
+    });
+
+    it('Tuen Ma Line uses valid provider codes for Long Ping (LOP) and Shek Mun (SHM), and includes Sung Wong Toi (SUW)', () => {
+        const tmlGroup = MTR_LINE_GROUPS.find(g =>
+            (typeof g.groupName === 'object' ? g.groupName.en : g.groupName) === 'Tuen Ma Line'
+        );
+        expect(tmlGroup).toBeDefined();
+
+        const ids = tmlGroup!.stations.map(s => s.id);
+        // The MTR API rejects LUM/SHF with status 0 ("The contents are empty!").
+        expect(ids).toContain('LOP');
+        expect(ids).toContain('SHM');
+        expect(ids).not.toContain('LUM');
+        expect(ids).not.toContain('SHF');
+        // Sung Wong Toi is a Tuen Ma Line station and must be selectable.
+        expect(ids).toContain('SUW');
+
+        expect(MTR_STATIONS.LOP).toEqual({ en: 'Long Ping', tc: '朗屏' });
+        expect(MTR_STATIONS.SHM).toEqual({ en: 'Shek Mun', tc: '石門' });
+        expect(MTR_STATIONS.SUW).toEqual({ en: 'Sung Wong Toi', tc: '宋皇臺' });
     });
 });
 

@@ -137,6 +137,10 @@ export default function StationList({ currentTab }: { currentTab: string }) {
     const [stationLastUpdated, setStationLastUpdated] = useState<string | null>(null);
     const refetchersRef = useRef<Array<() => void>>([]);
     const [dynamicStops, setDynamicStops] = useState<Record<string, { byDir?: Record<string, StationOption[]>, directionInfo?: Record<string, DirectionInfo>, stations?: StationOption[] }>>({});
+    // Tracks routes whose stops have already been seeded/fetched. Using a ref keeps
+    // this out of the effect deps, otherwise the state update would re-run the effect
+    // and cancel the in-flight live fetch.
+    const loadedRoutesRef = useRef<Set<string>>(new Set());
     const [openDirections, setOpenDirections] = useState<Record<string, Set<string>>>({});
     const groupHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
     const directionHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -258,7 +262,8 @@ export default function StationList({ currentTab }: { currentTab: string }) {
         const isCircularFromGroup = !!grp.isCircularRoute;
         const isCircular = isCircularFromGroup || isCircularRoute(routeKey, grp.desc);
         const storageKey = `${routeKey}:${directionCode || 'ALL'}`;
-        if (dynamicStops[storageKey]) return;
+        if (loadedRoutesRef.current.has(storageKey)) return;
+        loadedRoutesRef.current.add(storageKey);
 
         const buildStaticStops = () => {
             const prefix = routeKey + '-';
@@ -458,14 +463,15 @@ export default function StationList({ currentTab }: { currentTab: string }) {
 
                 setDynamicStops(prev => ({ ...prev, [storageKey]: { byDir: allByDir, directionInfo: dirInfo, stations: isCircularLive && allByDir['merged'] ? allByDir['merged'] : undefined } }));
             } catch {
-                // keep static stops already shown
+                // keep static stops already shown, and allow a retry next time
+                loadedRoutesRef.current.delete(storageKey);
             }
         })();
 
         return () => {
             cancelled = true;
         };
-    }, [expandedGroup, currentTab, groups, dynamicStops, language, resolveName]);
+    }, [expandedGroup, currentTab, groups, language, resolveName]);
 
     useEffect(() => {
         setStationLastUpdated(null);

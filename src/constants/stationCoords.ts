@@ -103,19 +103,20 @@ export const MTR_STATION_COORDS: Record<string, { lat: number; lng: number }> = 
     TUM: { lat: 22.3949, lng: 113.9758 }, // Tuen Mun
     SIH: { lat: 22.4080, lng: 113.9908 }, // Siu Hong
     TIS: { lat: 22.4473, lng: 114.0028 }, // Tin Shui Wai
-    LUM: { lat: 22.4460, lng: 114.0253 }, // Long Ping
+    LOP: { lat: 22.4460, lng: 114.0253 }, // Long Ping
     YUL: { lat: 22.4454, lng: 114.0355 }, // Yuen Long
     KSR: { lat: 22.4361, lng: 114.0650 }, // Kam Sheung Road
     TWW: { lat: 22.3666, lng: 114.1096 }, // Tsuen Wan West
     AUS: { lat: 22.3034, lng: 114.1663 }, // Austin
     ETS: { lat: 22.2968, lng: 114.1754 }, // East Tsim Sha Tsui
     TKW: { lat: 22.3184, lng: 114.1874 }, // To Kwa Wan
+    SUW: { lat: 22.3261, lng: 114.1902 }, // Sung Wong Toi
     KAT: { lat: 22.3312, lng: 114.2082 }, // Kai Tak
     HIK: { lat: 22.3628, lng: 114.1693 }, // Hin Keng
     CKT: { lat: 22.3792, lng: 114.1835 }, // Che Kung Temple
     STW: { lat: 22.3765, lng: 114.1945 }, // Sha Tin Wai
     CIO: { lat: 22.3820, lng: 114.2077 }, // City One
-    SHF: { lat: 22.3888, lng: 114.2095 }, // Shek Mun
+    SHM: { lat: 22.3888, lng: 114.2095 }, // Shek Mun
     HEO: { lat: 22.4118, lng: 114.2161 }, // Heng On
     WKS: { lat: 22.4283, lng: 114.2404 }, // Wu Kai Sha
 

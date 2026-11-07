@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { vi, expect, describe, it } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as matchers from '@testing-library/jest-dom/matchers';
@@ -30,7 +30,13 @@ vi.mock('../hooks/useMTRLineStatus', () => ({
   useMTRLineStatus: () => ({ statusMap: new Map(), isLoading: false }),
 }));
 
+vi.mock('../services/busStops', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/busStops')>();
+  return { ...actual, fetchRouteStops: vi.fn() };
+});
+
 import StationList from '../components/StationPicker';
+import { fetchRouteStops } from '../services/busStops';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
@@ -56,6 +62,36 @@ describe('StationPicker component (tab switching and bus stops)', () => {
     // This test is skipped temporarily due to mocking issues with currentTab
     // The functionality is tested in integration tests with real routing
   }, 20000);
+});
+
+describe('StationPicker live bus stops', () => {
+  it('applies live stops fetched after an expanded route seeds its static stops', async () => {
+    const fetchRouteStopsMock = vi.mocked(fetchRouteStops);
+    let resolveLive: (value: Awaited<ReturnType<typeof fetchRouteStops>>) => void = () => {};
+    fetchRouteStopsMock.mockImplementation(() => new Promise(resolve => { resolveLive = resolve; }));
+
+    _currentTab = 'BUS';
+    renderWithQuery(<StationList currentTab="BUS" />);
+
+    const headers = screen.getAllByText(/K58 · To/);
+    fireEvent.click(headers[0]);
+
+    // Static stops are seeded first, so the loading placeholder goes away.
+    await waitFor(() => expect(screen.queryByText('Loading stops...')).not.toBeInTheDocument());
+
+    // The live response then arrives and must be merged into the list.
+    await act(async () => {
+      resolveLive({
+        routeName: 'K58',
+        byDir: {
+          D: { dir: 'D', stops: [{ id: 'K58-X999', seq: 999, raw: { busStopId: 'K58-X999' } }] },
+          U: { dir: 'U', stops: [{ id: 'K58-X999', seq: 999, raw: { busStopId: 'K58-X999' } }] },
+        },
+      });
+    });
+
+    expect(await screen.findByText('K58-X999')).toBeInTheDocument();
+  });
 });
 
 describe('K75S circular route ordering', () => {

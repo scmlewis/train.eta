@@ -296,9 +296,9 @@ export default function EtaDisplay({ stationId, stationName, line, mode, interch
             
             const selectedDest = selectedFilterIndex !== null ? destinations[selectedFilterIndex] : null;
 
-            const filteredData = (data as any[]).map(plat => ({
+            const filteredData = (data as LRTResponse).map(plat => ({
                 ...plat,
-                etas: (plat.etas || []).filter((e: any) => !selectedDest || e.destination === selectedDest)
+                etas: (plat.etas ?? []).filter(e => !selectedDest || e.destination === selectedDest)
             })).filter(plat => plat.etas.length > 0);
 
             if (filteredData.length === 0) return <NoMatchCard lang={lang} />;

@@ -27,7 +27,8 @@ const SENTINEL_STATIONS: Record<string, string> = {
 
 const LINE_KEYS = Object.keys(SENTINEL_STATIONS);
 
-function deriveStatus(result: MTRResult): LineStatus {
+export function deriveStatus(result: MTRResult): LineStatus {
+    if (result.noData) return 'unknown';
     if (result.offline) return 'special';
     if (result.delayed) return 'delayed';
     if (result.serviceStatus?.isSpecial) return 'special';

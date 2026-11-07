@@ -38,11 +38,11 @@ export const MTR_STATIONS: Record<string, { en: string, tc: string }> = {
     'LOW': { en: 'Lo Wu', tc: '羅湖' }, 'LMC': { en: 'Lok Ma Chau', tc: '落馬洲' },
     // Tuen Ma Line
     'TUM': { en: 'Tuen Mun', tc: '屯門' }, 'SIH': { en: 'Siu Hong', tc: '兆康' }, 'TIS': { en: 'Tin Shui Wai', tc: '天水圍' },
-    'LUM': { en: 'Long Ping', tc: '朗屏' }, 'YUL': { en: 'Yuen Long', tc: '元朗' }, 'KSR': { en: 'Kam Sheung Road', tc: '錦上路' },
+    'LOP': { en: 'Long Ping', tc: '朗屏' }, 'YUL': { en: 'Yuen Long', tc: '元朗' }, 'KSR': { en: 'Kam Sheung Road', tc: '錦上路' },
     'TWW': { en: 'Tsuen Wan West', tc: '荃灣西' }, 'AUS': { en: 'Austin', tc: '柯士甸' }, 'ETS': { en: 'East Tsim Sha Tsui', tc: '尖東' },
     'TKW': { en: 'To Kwa Wan', tc: '土瓜灣' }, 'SUW': { en: 'Sung Wong Toi', tc: '宋皇臺' }, 'KAT': { en: 'Kai Tak', tc: '啟德' },
     'HIK': { en: 'Hin Keng', tc: '顯徑' }, 'CKT': { en: 'Che Kung Temple', tc: '車公廟' }, 'STW': { en: 'Sha Tin Wai', tc: '沙田圍' },
-    'CIO': { en: 'City One', tc: '第一城' }, 'SHF': { en: 'Shek Mun', tc: '石門' }, 'HEO': { en: 'Heng On', tc: '恆安' },
+    'CIO': { en: 'City One', tc: '第一城' }, 'SHM': { en: 'Shek Mun', tc: '石門' }, 'HEO': { en: 'Heng On', tc: '恆安' },
     'MOS': { en: 'Ma On Shan', tc: '馬鞍山' }, 'WKS': { en: 'Wu Kai Sha', tc: '烏溪沙' },
     // Disneyland Resort Line
     'DIS': { en: 'Disneyland Resort', tc: '迪士尼' }
